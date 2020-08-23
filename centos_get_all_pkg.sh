@@ -1,0 +1,1 @@
+rpm -qa | xargs -I % sh -c 'rpm -ql %'

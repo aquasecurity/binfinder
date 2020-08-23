@@ -13,6 +13,10 @@ import (
 	"sync"
 )
 
+const (
+	workers = 4
+)
+
 var (
 	images = flag.String("images", "mongo:latest,grafana/grafana", "comma separated images on which to run diff")
 
@@ -39,33 +43,51 @@ type Diffs struct {
 
 func main() {
 	flag.Parse()
+	concurrency := make(chan bool, workers)
 	wg := &sync.WaitGroup{}
 	for _, img := range strings.Split(*images, ",") {
 		osName := strings.ToLower(getOS(img))
 		if strings.Contains(osName, "alpine") {
+			concurrency <- true
 			wg.Add(1)
 			go func(img string) {
 				defer wg.Done()
 				fetchAlpineDiff(img)
+				<-concurrency
 			}(img)
 		} else if strings.Contains(osName, "ubuntu") || strings.Contains(osName, "debian") {
+			concurrency <- true
 			wg.Add(1)
 			go func(img string) {
 				defer wg.Done()
 				fetchUbuntuDiff(img)
+				<-concurrency
 			}(img)
 		} else if strings.Contains(osName, "centos") {
+			concurrency <- true
 			wg.Add(1)
 			go func(img string) {
 				defer wg.Done()
 				fetchCentOSDiff(img)
+				<-concurrency
 			}(img)
 		}
 	}
 	wg.Wait()
 }
 
+func pullImage(imageName string) {
+	fmt.Printf("Pulling image: %v...\n", imageName)
+	_, err := exec.Command("docker", "pull", imageName).Output()
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("Pulled image: %v...\n", imageName)
+	return
+}
+
 func getOS(imageName string) string {
+	pullImage(imageName)
 	out, err := exec.Command("docker",
 		strings.Split(fmt.Sprintf(checkOSName, imageName), " ")...).Output()
 	if err != nil {
@@ -80,6 +102,7 @@ func getOS(imageName string) string {
 }
 
 func fetchAlpineDiff(imageName string) {
+	fmt.Printf("processing image: %v...\n", imageName)
 	diffJson := Diffs{ImageName: imageName}
 	allPackages := make(map[string]bool)
 	out, err := exec.Command("docker",
@@ -101,9 +124,6 @@ func fetchAlpineDiff(imageName string) {
 	for p := range allPackages {
 		out, err = exec.Command("docker",
 			strings.Split(fmt.Sprintf(argsAPKInfo, imageName, p), " ")...).Output()
-		//if err != nil {
-		//	log.Fatal(err)
-		//}
 		for _, f := range strings.Split(string(out), "\n") {
 			f = strings.TrimSpace(f)
 			if f != "" && !strings.HasSuffix(f, "contains:") {
@@ -114,6 +134,7 @@ func fetchAlpineDiff(imageName string) {
 			}
 		}
 	}
+	fmt.Printf("%v: found %v packages\n", imageName, len(pkgELFFiles))
 	pkgELFFiles["/usr/bin/file"] = true
 	currDir, _ := os.Getwd()
 	out, err = exec.Command("docker",
@@ -121,6 +142,7 @@ func fetchAlpineDiff(imageName string) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	count := 0
 	for _, f := range strings.Split(string(out), "\n") {
 		parts := strings.Split(f, ":")
 		if len(parts) > 1 {
@@ -128,14 +150,15 @@ func fetchAlpineDiff(imageName string) {
 				!strings.Contains(strings.TrimSpace(parts[1]), "shared object") {
 				f = strings.TrimSpace(parts[0])
 				if f != "" {
+					count++
 					if _, ok := pkgELFFiles[f]; !ok {
 						diffJson.ELFNames = append(diffJson.ELFNames, strings.TrimSpace(f))
 					}
 				}
 			}
 		}
-
 	}
+	fmt.Printf("%v: found %v binaries\n", imageName, count)
 	content, err := json.MarshalIndent(diffJson, "", " ")
 	if err != nil {
 		panic(err)
@@ -149,11 +172,12 @@ func fetchAlpineDiff(imageName string) {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("%v: found %v files installed from package manager and %v from other sources\n", imageName,
-		len(pkgELFFiles), len(diffJson.ELFNames))
+	fmt.Printf("%v: found %v binaries installed not through a package manager\n", imageName,
+		len(diffJson.ELFNames))
 }
 
 func fetchUbuntuDiff(imageName string) {
+	fmt.Printf("processing image: %v...\n", imageName)
 	diffJson := Diffs{ImageName: imageName}
 	fileLists := make(map[string]bool)
 	out, err := exec.Command("docker",
@@ -180,6 +204,7 @@ func fetchUbuntuDiff(imageName string) {
 			}
 		}
 	}
+	fmt.Printf("%v: found %v packages\n", imageName, len(pkgELFFiles))
 	pkgELFFiles["/usr/bin/file"] = true
 	currDir, _ := os.Getwd()
 	out, err = exec.Command("docker",
@@ -187,6 +212,7 @@ func fetchUbuntuDiff(imageName string) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	count := 0
 	for _, f := range strings.Split(string(out), "\n") {
 		parts := strings.Split(f, ":")
 		if len(parts) > 1 {
@@ -194,6 +220,7 @@ func fetchUbuntuDiff(imageName string) {
 				!strings.Contains(strings.TrimSpace(parts[1]), "shared object") {
 				f = strings.TrimSpace(parts[0])
 				if f != "" {
+					count++
 					if _, ok := pkgELFFiles[f]; !ok {
 						diffJson.ELFNames = append(diffJson.ELFNames, strings.TrimSpace(f))
 					}
@@ -201,6 +228,7 @@ func fetchUbuntuDiff(imageName string) {
 			}
 		}
 	}
+	fmt.Printf("%v: found %v binaries\n", imageName, count)
 	content, err := json.MarshalIndent(diffJson, "", " ")
 	if err != nil {
 		panic(err)
@@ -214,11 +242,12 @@ func fetchUbuntuDiff(imageName string) {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("%v: found %v files installed from package manager and %v from other sources\n", imageName,
-		len(pkgELFFiles), len(diffJson.ELFNames))
+	fmt.Printf("%v: found %v binaries installed not through a package manager\n", imageName,
+		len(diffJson.ELFNames))
 }
 
 func fetchCentOSDiff(imageName string) {
+	fmt.Printf("processing image: %v...\n", imageName)
 	diffJson := Diffs{ImageName: imageName}
 	pkgELFFiles := make(map[string]bool)
 	currDir, _ := os.Getwd()
@@ -236,12 +265,14 @@ func fetchCentOSDiff(imageName string) {
 			pkgELFFiles[f] = true
 		}
 	}
+	fmt.Printf("%v: found %v packages\n", imageName, len(pkgELFFiles))
 	pkgELFFiles["/usr/bin/file"] = true
 	out, err = exec.Command("docker",
 		strings.Split(fmt.Sprintf(argsAllELFFiles, currDir, "centos", "centos", imageName, "centos"), " ")...).Output()
 	if err != nil {
 		log.Fatal(err)
 	}
+	count := 0
 	for _, f := range strings.Split(string(out), "\n") {
 		parts := strings.Split(f, ":")
 		if len(parts) > 1 {
@@ -249,6 +280,7 @@ func fetchCentOSDiff(imageName string) {
 				!strings.Contains(strings.TrimSpace(parts[1]), "shared object") {
 				f = strings.TrimSpace(parts[0])
 				if f != "" {
+					count++
 					if _, ok := pkgELFFiles[f]; !ok {
 						diffJson.ELFNames = append(diffJson.ELFNames, strings.TrimSpace(f))
 					}
@@ -256,6 +288,7 @@ func fetchCentOSDiff(imageName string) {
 			}
 		}
 	}
+	fmt.Printf("%v: found %v binaries\n", imageName, count)
 	content, err := json.MarshalIndent(diffJson, "", " ")
 	if err != nil {
 		panic(err)
@@ -269,6 +302,6 @@ func fetchCentOSDiff(imageName string) {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("%v:found %v files installed from package manager and %v from other sources\n", imageName,
-		len(pkgELFFiles), len(diffJson.ELFNames))
+	fmt.Printf("%v: found %v binaries installed not through a package manager\n", imageName,
+		len(diffJson.ELFNames))
 }

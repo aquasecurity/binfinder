@@ -1,0 +1,6 @@
+{
+ "ImageName": "mongo:latest",
+ "ELFNames": [
+  "/usr/local/bin/gosu"
+ ]
+}
