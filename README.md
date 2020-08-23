@@ -8,7 +8,7 @@ $ go build -o binfinder .
 ```
 Once the build is complete, you can run the bindfinder by running:
 ```
-$ ./binfinder --image <comma separated list of image>
+$ ./binfinder --images <comma separated list of image>
 ```
 The output will be diff files per image.
 
