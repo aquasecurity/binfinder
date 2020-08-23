@@ -13,6 +13,6 @@ $ ./binfinder --image <comma separated list of image>
 The output will be diff files per image.
 
 ## Note:
-* Binfinder requires shell files alpine.sh, ubuntu.sh, centos.sh, and centos_get_all_pkg.sh files to function, these shell files
-must be present in the director from where the command is to be executed.
+* Binfinder requires shell files alpine.sh, ubuntu.sh, centos.sh, and centos_get_all_pkg.sh files to work, these shell files
+must be present in the directory from where the command is to be executed.
 * To improve performance pull the docker image before hand.
