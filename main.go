@@ -18,7 +18,8 @@ const (
 )
 
 var (
-	images = flag.String("images", "mongo:latest,grafana/grafana", "comma separated images on which to run diff")
+	images    = flag.String("images", "mongo:latest,grafana/grafana", "comma separated images on which to run diff")
+	outputDir = flag.String("output", "data", "output directory to store the diff files")
 
 	// Common
 	checkOSName     = `run -u root --rm --entrypoint cat %v /etc/os-release`
@@ -43,6 +44,11 @@ type Diffs struct {
 
 func main() {
 	flag.Parse()
+	if *outputDir != "" {
+		if err := os.MkdirAll(*outputDir, os.ModePerm); err != nil {
+			log.Fatal(err)
+		}
+	}
 	concurrency := make(chan bool, workers)
 	wg := &sync.WaitGroup{}
 	for _, img := range strings.Split(*images, ",") {
@@ -163,7 +169,7 @@ func fetchAlpineDiff(imageName string) {
 	if err != nil {
 		panic(err)
 	}
-	file, err := os.Create(strings.ReplaceAll(imageName, "/", "-") + "-diff.json")
+	file, err := os.Create(fmt.Sprintf("%v/%v", *outputDir, strings.ReplaceAll(imageName, "/", "-")+"-diff.json"))
 	if err != nil {
 		panic(err)
 	}
@@ -233,7 +239,7 @@ func fetchUbuntuDiff(imageName string) {
 	if err != nil {
 		panic(err)
 	}
-	file, err := os.Create(strings.ReplaceAll(imageName, "/", "-") + "-diff.json")
+	file, err := os.Create(fmt.Sprintf("%v/%v", *outputDir, strings.ReplaceAll(imageName, "/", "-")+"-diff.json"))
 	if err != nil {
 		panic(err)
 	}
@@ -293,7 +299,7 @@ func fetchCentOSDiff(imageName string) {
 	if err != nil {
 		panic(err)
 	}
-	file, err := os.Create(strings.ReplaceAll(imageName, "/", "-") + "-diff.json")
+	file, err := os.Create(fmt.Sprintf("%v/%v", *outputDir, strings.ReplaceAll(imageName, "/", "-")+"-diff.json"))
 	if err != nil {
 		panic(err)
 	}
