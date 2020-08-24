@@ -2,15 +2,21 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
+
+	"github.com/aquasecurity/binfinder/pkg/repository/popular"
+	"github.com/aquasecurity/binfinder/pkg/repository/popular/docker"
 )
 
 const (
@@ -20,6 +26,8 @@ const (
 var (
 	images    = flag.String("images", "mongo:latest,grafana/grafana", "comma separated images on which to run diff")
 	outputDir = flag.String("output", "data", "output directory to store the diff files")
+	topN      = flag.Int("top", 0, "top images to run binfinder on")
+	analyze   = flag.Bool("analyze", false, "run analysis on diff saved in data folder")
 
 	// Common
 	checkOSName     = `run -u root --rm --entrypoint cat %v /etc/os-release`
@@ -35,6 +43,8 @@ var (
 	// Alpine
 	argsParseAPKFile = `run -u root --rm --entrypoint cat %v /lib/apk/db/installed`
 	argsAPKInfo      = `run -u root --rm --entrypoint apk %v info -L %v`
+
+	imageProvider popular.ImageProvider
 )
 
 type Diffs struct {
@@ -49,37 +59,82 @@ func main() {
 			log.Fatal(err)
 		}
 	}
-	concurrency := make(chan bool, workers)
-	wg := &sync.WaitGroup{}
-	for _, img := range strings.Split(*images, ",") {
-		osName := strings.ToLower(getOS(img))
-		if strings.Contains(osName, "alpine") {
-			concurrency <- true
-			wg.Add(1)
-			go func(img string) {
-				defer wg.Done()
-				fetchAlpineDiff(img)
-				<-concurrency
-			}(img)
-		} else if strings.Contains(osName, "ubuntu") || strings.Contains(osName, "debian") {
-			concurrency <- true
-			wg.Add(1)
-			go func(img string) {
-				defer wg.Done()
-				fetchUbuntuDiff(img)
-				<-concurrency
-			}(img)
-		} else if strings.Contains(osName, "centos") {
-			concurrency <- true
-			wg.Add(1)
-			go func(img string) {
-				defer wg.Done()
-				fetchCentOSDiff(img)
-				<-concurrency
-			}(img)
+	if *analyze {
+		diffFileCount := make(map[string]int64)
+		filepath.Walk(*outputDir, func(path string, info os.FileInfo, err error) error {
+			if strings.HasSuffix(info.Name(), ".json") {
+				f, err := os.Open(path)
+				if err != nil {
+					return err
+				}
+				defer f.Close()
+				c, err := ioutil.ReadAll(f)
+				if err != nil {
+					return err
+				}
+				var d Diffs
+				if err = json.Unmarshal(c, &d); err != nil {
+					return err
+				}
+				for _, e := range d.ELFNames {
+					if _, ok := diffFileCount[e]; !ok {
+						diffFileCount[e] = 0
+					}
+					diffFileCount[e] = diffFileCount[e] + 1
+				}
+			}
+			return nil
+		})
+		data, err := json.MarshalIndent(diffFileCount, "", " ")
+		if err != nil {
+			log.Fatal(err)
 		}
+		err = ioutil.WriteFile("analysis.json", data, os.ModePerm)
+		if err != nil {
+			log.Fatal(err)
+		}
+	} else {
+		if *topN > 0 {
+			imageProvider = docker.NewPopularProvider()
+			ctx := context.Background()
+			popularImges, err := imageProvider.GetPopularImages(ctx, *topN)
+			if err != nil {
+				log.Fatal(err)
+			}
+			*images = strings.Join(popularImges, ",")
+		}
+		concurrency := make(chan bool, workers)
+		wg := &sync.WaitGroup{}
+		for _, img := range strings.Split(*images, ",") {
+			osName := strings.ToLower(getOS(img))
+			if strings.Contains(osName, "alpine") {
+				concurrency <- true
+				wg.Add(1)
+				go func(img string) {
+					defer wg.Done()
+					fetchAlpineDiff(img)
+					<-concurrency
+				}(img)
+			} else if strings.Contains(osName, "ubuntu") || strings.Contains(osName, "debian") {
+				concurrency <- true
+				wg.Add(1)
+				go func(img string) {
+					defer wg.Done()
+					fetchUbuntuDiff(img)
+					<-concurrency
+				}(img)
+			} else if strings.Contains(osName, "centos") {
+				concurrency <- true
+				wg.Add(1)
+				go func(img string) {
+					defer wg.Done()
+					fetchCentOSDiff(img)
+					<-concurrency
+				}(img)
+			}
+		}
+		wg.Wait()
 	}
-	wg.Wait()
 }
 
 func pullImage(imageName string) {
