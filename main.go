@@ -133,7 +133,7 @@ func main() {
 					fetchUbuntuDiff(img)
 					<-concurrency
 				}(img)
-			} else if strings.Contains(osName, "centos") {
+			} else if strings.Contains(osName, "centos") || strings.Contains(osName, "linux") {
 				concurrency <- true
 				wg.Add(1)
 				go func(img string) {
