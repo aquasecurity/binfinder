@@ -111,7 +111,12 @@ func main() {
 				log.Printf("skipping img: %v", img)
 				continue
 			}
-			osName := strings.ToLower(getOS(img))
+			osName, err := getOS(img)
+			if err != nil {
+				log.Printf("unable to get OS info skipping img: %v", img)
+				continue
+			}
+			osName = strings.ToLower(osName)
 			if strings.Contains(osName, "alpine") {
 				concurrency <- true
 				wg.Add(1)
@@ -152,7 +157,7 @@ func pullImage(imageName string) {
 	return
 }
 
-func getOS(imageName string) string {
+func getOS(imageName string) (string, error) {
 	pullImage(imageName)
 	out, err := exec.Command("docker",
 		strings.Split(fmt.Sprintf(checkOSName, imageName), " ")...).Output()
@@ -161,10 +166,10 @@ func getOS(imageName string) string {
 		out, err = exec.Command("docker",
 			strings.Split(fmt.Sprintf(checkCentOSName, imageName), " ")...).Output()
 		if err != nil {
-			log.Fatal(err)
+			return "", err
 		}
 	}
-	return strings.Split(string(out), "\n")[0]
+	return strings.Split(string(out), "\n")[0], nil
 }
 
 func fetchAlpineDiff(imageName string) {
