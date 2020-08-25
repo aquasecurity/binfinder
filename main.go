@@ -20,11 +20,11 @@ import (
 )
 
 const (
-	workers = 4
+	workers = 1
 )
 
 var (
-	images    = flag.String("images", "mongo:latest,grafana/grafana", "comma separated images on which to run diff")
+	images    = flag.String("images", "mysql,alpine", "comma separated images on which to run diff")
 	outputDir = flag.String("output", "data", "output directory to store the diff files")
 	topN      = flag.Int("top", 0, "top images to run binfinder on")
 	analyze   = flag.Bool("analyze", false, "run analysis on diff saved in data folder")
