@@ -42,7 +42,7 @@ func (p *Provider) GetPopularImages(ctx context.Context, top int) ([]string, err
 			return nil, err
 		}
 		for _, img := range images.Summaries {
-			result = append(result, img.Name)
+			result = append(result, img.Slug)
 			if len(result) == top {
 				return result, nil
 			}
