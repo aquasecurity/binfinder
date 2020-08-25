@@ -109,6 +109,9 @@ func main() {
 			if img == "elasticsearch" {
 				img = "elasticsearch:7.9.0"
 			}
+			if img == "logstash" {
+				img = "logstash:7.9.0"
+			}
 			_, err := os.Stat(fmt.Sprintf("%v/%v", *outputDir, strings.ReplaceAll(img, "/", "-")+"-diff.json"))
 			if err == nil || img == "busybox" {
 				log.Printf("skipping img: %v", img)
