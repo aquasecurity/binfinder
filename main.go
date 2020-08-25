@@ -106,6 +106,11 @@ func main() {
 		concurrency := make(chan bool, workers)
 		wg := &sync.WaitGroup{}
 		for _, img := range strings.Split(*images, ",") {
+			_, err := os.Stat(fmt.Sprintf("%v/%v", *outputDir, strings.ReplaceAll(img, "/", "-")+"-diff.json"))
+			if err == nil || img == "busybox" {
+				log.Printf("skipping img: %v", img)
+				continue
+			}
 			osName := strings.ToLower(getOS(img))
 			if strings.Contains(osName, "alpine") {
 				concurrency <- true
