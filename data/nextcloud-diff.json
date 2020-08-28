@@ -1,0 +1,20 @@
+{
+ "ImageName": "nextcloud",
+ "ELFNames": [
+  "/usr/local/bin/phpdbg",
+  "/usr/local/bin/php",
+  "/usr/local/lib/php/extensions/no-debug-non-zts-20190902/opcache.so",
+  "/usr/local/lib/php/extensions/no-debug-non-zts-20190902/sodium.so",
+  "/usr/local/lib/php/extensions/no-debug-non-zts-20190902/pdo_mysql.so",
+  "/usr/local/lib/php/extensions/no-debug-non-zts-20190902/gmp.so",
+  "/usr/local/lib/php/extensions/no-debug-non-zts-20190902/gd.so",
+  "/usr/local/lib/php/extensions/no-debug-non-zts-20190902/ldap.so",
+  "/usr/local/lib/php/extensions/no-debug-non-zts-20190902/bcmath.so",
+  "/usr/local/lib/php/extensions/no-debug-non-zts-20190902/pcntl.so",
+  "/usr/local/lib/php/extensions/no-debug-non-zts-20190902/intl.so",
+  "/usr/local/lib/php/extensions/no-debug-non-zts-20190902/exif.so",
+  "/usr/local/lib/php/extensions/no-debug-non-zts-20190902/pdo_pgsql.so",
+  "/usr/local/lib/php/extensions/no-debug-non-zts-20190902/zip.so",
+  "/var/lib/dpkg/info/bash.preinst"
+ ]
+}

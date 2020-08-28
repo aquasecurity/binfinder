@@ -1,0 +1,13 @@
+{
+ "ImageName": "crate",
+ "ELFNames": [
+  "/usr/bin/sed",
+  "/usr/bin/rpm",
+  "/usr/bin/grep",
+  "/usr/bin/hostname",
+  "/usr/sbin/install-info",
+  "/usr/sbin/chkconfig",
+  "/usr/sbin/ldconfig",
+  "/usr/sbin/sln"
+ ]
+}

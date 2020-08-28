@@ -1,0 +1,7 @@
+{
+ "ImageName": "mysql",
+ "ELFNames": [
+  "/usr/local/bin/gosu",
+  "/var/lib/dpkg/info/bash.preinst"
+ ]
+}

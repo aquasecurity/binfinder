@@ -1,0 +1,7 @@
+{
+ "ImageName": "tomcat",
+ "ELFNames": [
+  "/usr/local/tomcat/native-jni-lib/libtcnative-1.so.0.2.24",
+  "/var/lib/dpkg/info/bash.preinst"
+ ]
+}

@@ -1,0 +1,6 @@
+{
+ "ImageName": "mariadb",
+ "ELFNames": [
+  "/usr/local/bin/gosu"
+ ]
+}

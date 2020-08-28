@@ -1,0 +1,7 @@
+{
+ "ImageName": "node",
+ "ELFNames": [
+  "/usr/local/bin/node",
+  "/var/lib/dpkg/info/bash.preinst"
+ ]
+}

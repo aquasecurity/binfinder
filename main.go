@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/csv"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -12,11 +13,13 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 
 	"github.com/aquasecurity/binfinder/pkg/repository/popular"
 	"github.com/aquasecurity/binfinder/pkg/repository/popular/docker"
+	"github.com/aquasecurity/binfinder/pkg/repository/popular/registryV2"
 )
 
 const (
@@ -28,6 +31,10 @@ var (
 	outputDir = flag.String("output", "data", "output directory to store the diff files")
 	topN      = flag.Int("top", 0, "top images to run binfinder on")
 	analyze   = flag.Bool("analyze", false, "run analysis on diff saved in data folder")
+
+	registry = flag.String("registry", "", "pulls images from registry")
+	user     = flag.String("user", "", "registry user")
+	password = flag.String("password", "", "registry password")
 
 	// Common
 	checkOSName     = `run -u root --rm --entrypoint cat %v /etc/os-release`
@@ -60,96 +67,117 @@ func main() {
 		}
 	}
 	if *analyze {
-		diffFileCount := make(map[string]int64)
-		filepath.Walk(*outputDir, func(path string, info os.FileInfo, err error) error {
-			if strings.HasSuffix(info.Name(), ".json") {
-				f, err := os.Open(path)
-				if err != nil {
-					return err
-				}
-				defer f.Close()
-				c, err := ioutil.ReadAll(f)
-				if err != nil {
-					return err
-				}
-				var d Diffs
-				if err = json.Unmarshal(c, &d); err != nil {
-					return err
-				}
-				for _, e := range d.ELFNames {
-					if _, ok := diffFileCount[e]; !ok {
-						diffFileCount[e] = 0
-					}
-					diffFileCount[e] = diffFileCount[e] + 1
-				}
-			}
-			return nil
-		})
-		data, err := json.MarshalIndent(diffFileCount, "", " ")
-		if err != nil {
-			log.Fatal(err)
-		}
-		err = ioutil.WriteFile("analysis.json", data, os.ModePerm)
-		if err != nil {
-			log.Fatal(err)
-		}
-	} else {
-		if *topN > 0 {
+		exportAnalysis()
+		return
+	}
+	if *topN > 0 {
+		if *registry != "" {
+			imageProvider = registryV2.NewPopularProvider(*registry)
+		} else {
 			imageProvider = docker.NewPopularProvider()
-			ctx := context.Background()
-			popularImges, err := imageProvider.GetPopularImages(ctx, *topN)
-			if err != nil {
-				log.Fatal(err)
-			}
-			*images = strings.Join(popularImges, ",")
 		}
-		concurrency := make(chan bool, workers)
-		wg := &sync.WaitGroup{}
-		for _, img := range strings.Split(*images, ",") {
-			if img == "elasticsearch" {
-				img = "elasticsearch:7.9.0"
-			}
-			if img == "logstash" {
-				img = "logstash:7.9.0"
-			}
-			_, err := os.Stat(fmt.Sprintf("%v/%v", *outputDir, strings.ReplaceAll(img, "/", "-")+"-diff.json"))
-			if err == nil || img == "busybox" {
-				log.Printf("skipping img: %v", img)
-				continue
-			}
-			osName, err := getOS(img)
+		ctx := context.Background()
+		popularImges, err := imageProvider.GetPopularImages(ctx, *topN)
+		if err != nil {
+			log.Fatal(err)
+		}
+		*images = strings.Join(popularImges, ",")
+	}
+
+	concurrency := make(chan bool, workers)
+	wg := &sync.WaitGroup{}
+	for _, img := range strings.Split(*images, ",") {
+		if img == "elasticsearch" {
+			img = "elasticsearch:7.9.0"
+		}
+		if img == "logstash" {
+			img = "logstash:7.9.0"
+		}
+		_, err := os.Stat(fmt.Sprintf("%v/%v", *outputDir, strings.ReplaceAll(img, "/", "-")+"-diff.json"))
+		if err == nil || img == "busybox" {
+			log.Printf("skipping img: %v", img)
+			continue
+		}
+		osName, err := getOS(img)
+		if err != nil {
+			log.Printf("unable to get OS info skipping img: %v", img)
+			continue
+		}
+		osName = strings.ToLower(osName)
+		if strings.Contains(osName, "alpine") {
+			concurrency <- true
+			wg.Add(1)
+			go func(img string) {
+				defer wg.Done()
+				fetchAlpineDiff(img)
+				<-concurrency
+			}(img)
+		} else if strings.Contains(osName, "ubuntu") || strings.Contains(osName, "debian") {
+			concurrency <- true
+			wg.Add(1)
+			go func(img string) {
+				defer wg.Done()
+				fetchUbuntuDiff(img)
+				<-concurrency
+			}(img)
+		} else if strings.Contains(osName, "centos") || strings.Contains(osName, "linux") {
+			concurrency <- true
+			wg.Add(1)
+			go func(img string) {
+				defer wg.Done()
+				fetchCentOSDiff(img)
+				<-concurrency
+			}(img)
+		}
+	}
+	wg.Wait()
+}
+
+func exportAnalysis() {
+	diffFileCount := make(map[string]int64)
+	filepath.Walk(*outputDir, func(path string, info os.FileInfo, err error) error {
+		if strings.HasSuffix(info.Name(), ".json") {
+			f, err := os.Open(path)
 			if err != nil {
-				log.Printf("unable to get OS info skipping img: %v", img)
-				continue
+				return err
 			}
-			osName = strings.ToLower(osName)
-			if strings.Contains(osName, "alpine") {
-				concurrency <- true
-				wg.Add(1)
-				go func(img string) {
-					defer wg.Done()
-					fetchAlpineDiff(img)
-					<-concurrency
-				}(img)
-			} else if strings.Contains(osName, "ubuntu") || strings.Contains(osName, "debian") {
-				concurrency <- true
-				wg.Add(1)
-				go func(img string) {
-					defer wg.Done()
-					fetchUbuntuDiff(img)
-					<-concurrency
-				}(img)
-			} else if strings.Contains(osName, "centos") || strings.Contains(osName, "linux") {
-				concurrency <- true
-				wg.Add(1)
-				go func(img string) {
-					defer wg.Done()
-					fetchCentOSDiff(img)
-					<-concurrency
-				}(img)
+			defer f.Close()
+			c, err := ioutil.ReadAll(f)
+			if err != nil {
+				return err
+			}
+			var d Diffs
+			if err = json.Unmarshal(c, &d); err != nil {
+				return err
+			}
+			for _, e := range d.ELFNames {
+				if _, ok := diffFileCount[e]; !ok {
+					diffFileCount[e] = 0
+				}
+				diffFileCount[e] = diffFileCount[e] + 1
 			}
 		}
-		wg.Wait()
+		return nil
+	})
+	type binCount struct {
+		name  string
+		count int64
+	}
+	var counts []binCount
+	for k, v := range diffFileCount {
+		counts = append(counts, binCount{name: k, count: v})
+	}
+	sort.Slice(counts, func(i, j int) bool {
+		return counts[i].count > counts[j].count
+	})
+	f, err := os.Create("analysis.csv")
+	if err != nil {
+		log.Fatal(err)
+	}
+	w := csv.NewWriter(f)
+	defer w.Flush()
+	for _, c := range counts {
+		w.Write([]string{c.name, fmt.Sprintf("%v", c.count)})
 	}
 }
 

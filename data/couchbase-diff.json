@@ -1,0 +1,7 @@
+{
+ "ImageName": "couchbase",
+ "ELFNames": [
+  "/var/lib/dpkg/info/bash.preinst",
+  "/opt/couchbase/lib/python/runtime/compiler_compat/ld"
+ ]
+}

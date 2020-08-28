@@ -1,0 +1,6 @@
+{
+ "ImageName": "vault",
+ "ELFNames": [
+  "/bin/vault"
+ ]
+}

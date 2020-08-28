@@ -1,0 +1,7 @@
+{
+ "ImageName": "memcached",
+ "ELFNames": [
+  "/usr/local/bin/memcached",
+  "/var/lib/dpkg/info/bash.preinst"
+ ]
+}

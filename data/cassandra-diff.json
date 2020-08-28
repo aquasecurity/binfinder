@@ -1,0 +1,6 @@
+{
+ "ImageName": "cassandra",
+ "ELFNames": [
+  "/usr/local/bin/gosu"
+ ]
+}

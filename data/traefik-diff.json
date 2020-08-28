@@ -1,0 +1,6 @@
+{
+ "ImageName": "traefik",
+ "ELFNames": [
+  "/usr/local/bin/traefik"
+ ]
+}

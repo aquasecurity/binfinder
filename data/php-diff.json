@@ -1,0 +1,11 @@
+{
+ "ImageName": "php",
+ "ELFNames": [
+  "/usr/local/bin/phpdbg",
+  "/usr/local/bin/php",
+  "/usr/local/bin/php-cgi",
+  "/usr/local/lib/php/extensions/no-debug-non-zts-20190902/opcache.so",
+  "/usr/local/lib/php/extensions/no-debug-non-zts-20190902/sodium.so",
+  "/var/lib/dpkg/info/bash.preinst"
+ ]
+}

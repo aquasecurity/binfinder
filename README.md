@@ -16,7 +16,13 @@ To run analysis on diff files created after finding diffs, you can run analysis 
 ```
 $ ./binfinder --analyze --output data
 ```
-The output will be analysis.json file.
+The output will be analysis.csv file.
+
+To run binfinder on registry pass `--registry host` flag to CLI
+```
+$ ./binfinder --top=10 --registry=http://localhost:5000 --output data
+```
+CLI will pull images from repositry and check for binary diffs.
 
 ## Note:
 * Binfinder requires shell files alpine.sh, ubuntu.sh, centos.sh, and centos_get_all_pkg.sh files to work, these shell files

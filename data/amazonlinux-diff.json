@@ -1,0 +1,12 @@
+{
+ "ImageName": "amazonlinux",
+ "ELFNames": [
+  "/usr/bin/sed",
+  "/usr/bin/rpm",
+  "/usr/bin/grep",
+  "/usr/sbin/install-info",
+  "/usr/sbin/chkconfig",
+  "/usr/sbin/ldconfig",
+  "/usr/sbin/sln"
+ ]
+}

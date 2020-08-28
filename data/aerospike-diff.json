@@ -1,0 +1,6 @@
+{
+ "ImageName": "aerospike",
+ "ELFNames": [
+  "/var/lib/dpkg/info/bash.preinst"
+ ]
+}

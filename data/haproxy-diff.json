@@ -1,0 +1,7 @@
+{
+ "ImageName": "haproxy",
+ "ELFNames": [
+  "/usr/local/sbin/haproxy",
+  "/var/lib/dpkg/info/bash.preinst"
+ ]
+}

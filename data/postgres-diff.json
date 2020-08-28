@@ -1,0 +1,7 @@
+{
+ "ImageName": "postgres",
+ "ELFNames": [
+  "/usr/local/bin/gosu",
+  "/var/lib/dpkg/info/bash.preinst"
+ ]
+}

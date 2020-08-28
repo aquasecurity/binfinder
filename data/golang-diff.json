@@ -1,0 +1,31 @@
+{
+ "ImageName": "golang",
+ "ELFNames": [
+  "/usr/local/go/bin/go",
+  "/usr/local/go/bin/gofmt",
+  "/usr/local/go/pkg/tool/linux_amd64/link",
+  "/usr/local/go/pkg/tool/linux_amd64/pprof",
+  "/usr/local/go/pkg/tool/linux_amd64/pack",
+  "/usr/local/go/pkg/tool/linux_amd64/cover",
+  "/usr/local/go/pkg/tool/linux_amd64/fix",
+  "/usr/local/go/pkg/tool/linux_amd64/asm",
+  "/usr/local/go/pkg/tool/linux_amd64/doc",
+  "/usr/local/go/pkg/tool/linux_amd64/nm",
+  "/usr/local/go/pkg/tool/linux_amd64/compile",
+  "/usr/local/go/pkg/tool/linux_amd64/vet",
+  "/usr/local/go/pkg/tool/linux_amd64/dist",
+  "/usr/local/go/pkg/tool/linux_amd64/trace",
+  "/usr/local/go/pkg/tool/linux_amd64/addr2line",
+  "/usr/local/go/pkg/tool/linux_amd64/test2json",
+  "/usr/local/go/pkg/tool/linux_amd64/cgo",
+  "/usr/local/go/pkg/tool/linux_amd64/buildid",
+  "/usr/local/go/pkg/tool/linux_amd64/objdump",
+  "/usr/local/go/src/runtime/pprof/testdata/test64",
+  "/usr/local/go/src/runtime/pprof/testdata/test64be",
+  "/usr/local/go/src/runtime/pprof/testdata/test32be",
+  "/usr/local/go/src/runtime/pprof/testdata/test32",
+  "/usr/local/go/src/debug/dwarf/testdata/typedef.elf",
+  "/usr/local/go/src/debug/dwarf/testdata/ranges.elf",
+  "/var/lib/dpkg/info/bash.preinst"
+ ]
+}

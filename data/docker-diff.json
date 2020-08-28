@@ -1,0 +1,13 @@
+{
+ "ImageName": "docker",
+ "ELFNames": [
+  "/usr/local/bin/containerd-shim",
+  "/usr/local/bin/docker-proxy",
+  "/usr/local/bin/docker",
+  "/usr/local/bin/ctr",
+  "/usr/local/bin/docker-init",
+  "/usr/local/bin/dockerd",
+  "/usr/local/bin/containerd",
+  "/usr/local/bin/runc"
+ ]
+}

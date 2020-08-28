@@ -1,0 +1,17 @@
+{
+ "ImageName": "sonarqube",
+ "ELFNames": [
+  "/opt/java/openjdk/bin/rmid",
+  "/opt/java/openjdk/bin/pack200",
+  "/opt/java/openjdk/bin/jfr",
+  "/opt/java/openjdk/bin/jaotc",
+  "/opt/java/openjdk/bin/java",
+  "/opt/java/openjdk/bin/keytool",
+  "/opt/java/openjdk/bin/jrunscript",
+  "/opt/java/openjdk/bin/rmiregistry",
+  "/opt/java/openjdk/bin/unpack200",
+  "/opt/java/openjdk/bin/jjs",
+  "/opt/java/openjdk/lib/jspawnhelper",
+  "/opt/java/openjdk/lib/jexec"
+ ]
+}

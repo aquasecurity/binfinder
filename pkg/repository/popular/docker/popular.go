@@ -38,6 +38,7 @@ func (p *Provider) GetPopularImages(ctx context.Context, top int) ([]string, err
 			return nil, err
 		}
 		var images model.DockerResp
+
 		if err = json.NewDecoder(resp.Body).Decode(&images); err != nil {
 			return nil, err
 		}
