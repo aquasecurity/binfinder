@@ -79,11 +79,12 @@ func main() {
 		ctx := context.Background()
 		popularImges, err := imageProvider.GetPopularImages(ctx, *topN)
 		if err != nil {
-			log.Fatal(err)
+			log.Printf("error fetching popular images: %v", err)
+			return
 		}
 		*images = strings.Join(popularImges, ",")
 	} else {
-		log.Printf("topN value is 0, running binfinder on images passed on --images\n")
+		log.Printf("topN value is 0, running binfinder on images passed by --images flag\n")
 	}
 	if *images == "" {
 		log.Printf("got no image to scan for diff\n")
@@ -219,7 +220,8 @@ func fetchAlpineDiff(imageName string) {
 	out, err := exec.Command("docker",
 		strings.Split(fmt.Sprintf(argsParseAPKFile, imageName), " ")...).Output()
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("%v:  alpine OS, error listing apk files: %v\n", imageName, err)
+		return
 	}
 	for _, f := range strings.Split(string(out), "\n") {
 		if strings.TrimSpace(f) != "" {
@@ -251,7 +253,8 @@ func fetchAlpineDiff(imageName string) {
 	out, err = exec.Command("docker",
 		strings.Split(fmt.Sprintf(argsAllELFFiles, currDir, "alpine", "alpine", imageName, "alpine"), " ")...).Output()
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("%v: alpine OS, error listing all elf files: %v\n", imageName, err)
+		return
 	}
 	count := 0
 	for _, f := range strings.Split(string(out), "\n") {
@@ -272,16 +275,19 @@ func fetchAlpineDiff(imageName string) {
 	fmt.Printf("%v: found %v binaries\n", imageName, count)
 	content, err := json.MarshalIndent(diffJson, "", " ")
 	if err != nil {
-		panic(err)
+		log.Printf("%v: alpine OS, error marshalling diff: %v\n", imageName, err)
+		return
 	}
 	file, err := os.Create(fmt.Sprintf("%v/%v", *outputDir, strings.ReplaceAll(imageName, "/", "-")+"-diff.json"))
 	if err != nil {
-		panic(err)
+		log.Printf("%v: alpine OS, error creating diff file: %v\n", imageName, err)
+		return
 	}
 	defer file.Close()
 	_, err = io.Copy(file, bytes.NewReader(content))
 	if err != nil {
-		panic(err)
+		log.Printf("%v: alpine OS, error writing diff file: %v\n", imageName, err)
+		return
 	}
 	fmt.Printf("%v: found %v binaries installed not through a package manager\n", imageName,
 		len(diffJson.ELFNames))
@@ -294,7 +300,8 @@ func fetchUbuntuDiff(imageName string) {
 	out, err := exec.Command("docker",
 		strings.Split(fmt.Sprintf(listArgs, imageName), " ")...).Output()
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("%v: ubuntu, error listing pkg files: %v\n", imageName, err)
+		return
 	}
 	for _, f := range strings.Split(string(out), "\n") {
 		if strings.TrimSpace(f) != "" && strings.HasSuffix(f, ".list") {
@@ -307,7 +314,8 @@ func fetchUbuntuDiff(imageName string) {
 		out, err = exec.Command("docker",
 			strings.Split(fmt.Sprintf(parseFile, imageName, f), " ")...).Output()
 		if err != nil {
-			log.Fatal(err)
+			log.Printf("%v: ubuntu, error listing pkg bin files: %v\n", imageName, err)
+			return
 		}
 		for _, content := range strings.Split(string(out), "\n") {
 			if strings.TrimSpace(content) != "" {
@@ -321,7 +329,8 @@ func fetchUbuntuDiff(imageName string) {
 	out, err = exec.Command("docker",
 		strings.Split(fmt.Sprintf(argsAllELFFiles, currDir, "ubuntu", "ubuntu", imageName, "ubuntu"), " ")...).Output()
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("%v: ubuntu, error listing all bin files: %v\n", imageName, err)
+		return
 	}
 	count := 0
 	for _, f := range strings.Split(string(out), "\n") {
@@ -342,16 +351,19 @@ func fetchUbuntuDiff(imageName string) {
 	fmt.Printf("%v: found %v binaries\n", imageName, count)
 	content, err := json.MarshalIndent(diffJson, "", " ")
 	if err != nil {
-		panic(err)
+		log.Printf("%v: ubuntu, error marshalling diff: %v\n", imageName, err)
+		return
 	}
 	file, err := os.Create(fmt.Sprintf("%v/%v", *outputDir, strings.ReplaceAll(imageName, "/", "-")+"-diff.json"))
 	if err != nil {
-		panic(err)
+		log.Printf("%v: ubuntu, error creating diff file: %v\n", imageName, err)
+		return
 	}
 	defer file.Close()
 	_, err = io.Copy(file, bytes.NewReader(content))
 	if err != nil {
-		panic(err)
+		log.Printf("%v: ubuntu, error writing diff file: %v\n", imageName, err)
+		return
 	}
 	fmt.Printf("%v: found %v binaries installed not through a package manager\n", imageName,
 		len(diffJson.ELFNames))
@@ -365,7 +377,8 @@ func fetchCentOSDiff(imageName string) {
 	out, err := exec.Command("docker",
 		strings.Split(fmt.Sprintf(argsAllELFFiles, currDir, "centos_get_all_pkg", "centos_get_all_pkg", imageName, "centos_get_all_pkg"), " ")...).Output()
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("%v: centOS, error listing all pkg files: %v\n", imageName, err)
+		return
 	}
 	for _, f := range strings.Split(string(out), "\n") {
 		f = strings.TrimSpace(f)
@@ -381,7 +394,8 @@ func fetchCentOSDiff(imageName string) {
 	out, err = exec.Command("docker",
 		strings.Split(fmt.Sprintf(argsAllELFFiles, currDir, "centos", "centos", imageName, "centos"), " ")...).Output()
 	if err != nil {
-		log.Fatalf("error parsing all bin files in CentOS: %v", err)
+		log.Printf("%v: centOS, error listing all files: %v\n", imageName, err)
+		return
 	}
 	count := 0
 	for _, f := range strings.Split(string(out), "\n") {
