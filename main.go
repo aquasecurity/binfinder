@@ -29,7 +29,7 @@ const (
 var (
 	images    = flag.String("images", "", "comma separated images on which to run diff")
 	outputDir = flag.String("output", "data", "output directory to store the diff files")
-	topN      = flag.Int("top", 0, "top images to run binfinder on")
+	topN      = flag.Int("top", 0, "top images to run binfinder")
 	analyze   = flag.Bool("analyze", false, "run analysis on diff saved in data folder")
 
 	registry = flag.String("registry", "", "pulls images from registry")
@@ -63,7 +63,7 @@ func main() {
 	flag.Parse()
 	if *outputDir != "" {
 		if err := os.MkdirAll(*outputDir, os.ModePerm); err != nil {
-			log.Fatal(err)
+			log.Fatalf("error creating output directory to save diffs: %v", err)
 		}
 	}
 	if *analyze {
@@ -82,6 +82,12 @@ func main() {
 			log.Fatal(err)
 		}
 		*images = strings.Join(popularImges, ",")
+	} else {
+		log.Printf("topN value is 0, running binfinder on images passed on --images\n")
+	}
+	if *images == "" {
+		log.Printf("got no image to scan for diff\n")
+		return
 	}
 
 	concurrency := make(chan bool, workers)
@@ -95,7 +101,7 @@ func main() {
 		}
 		_, err := os.Stat(fmt.Sprintf("%v/%v", *outputDir, strings.ReplaceAll(img, "/", "-")+"-diff.json"))
 		if err == nil || img == "busybox" {
-			log.Printf("skipping img: %v", img)
+			log.Printf("skipping img: %v to parse diff, already present", img)
 			continue
 		}
 		osName, err := getOS(img)
@@ -375,7 +381,7 @@ func fetchCentOSDiff(imageName string) {
 	out, err = exec.Command("docker",
 		strings.Split(fmt.Sprintf(argsAllELFFiles, currDir, "centos", "centos", imageName, "centos"), " ")...).Output()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("error parsing all bin files in CentOS: %v", err)
 	}
 	count := 0
 	for _, f := range strings.Split(string(out), "\n") {
@@ -400,12 +406,14 @@ func fetchCentOSDiff(imageName string) {
 	}
 	file, err := os.Create(fmt.Sprintf("%v/%v", *outputDir, strings.ReplaceAll(imageName, "/", "-")+"-diff.json"))
 	if err != nil {
-		panic(err)
+		log.Printf("%v: error creating diff in CentOS: %v\n", imageName, err)
+		return
 	}
 	defer file.Close()
 	_, err = io.Copy(file, bytes.NewReader(content))
 	if err != nil {
-		panic(err)
+		log.Printf("%v: error saving CentOS diff: %v\n", imageName, err)
+		return
 	}
 	fmt.Printf("%v: found %v binaries installed not through a package manager\n", imageName,
 		len(diffJson.ELFNames))
