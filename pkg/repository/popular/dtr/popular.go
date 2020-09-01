@@ -52,6 +52,7 @@ func (p *Provider) GetPopularImages(ctx context.Context, top int) ([]string, err
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	type response struct {
 		Repositories []struct {
 			Namespace string
@@ -71,6 +72,10 @@ func (p *Provider) GetPopularImages(ctx context.Context, top int) ([]string, err
 		if err != nil {
 			log.Printf("error fetching the tag for image: %v %w", img, err)
 		}
+		if tag == "" {
+			log.Printf("not found valid tag for image: %v/%v\n", img.Namespace, img.Name)
+			continue
+		}
 		topImages = append(topImages, fmt.Sprintf("%v/%v/%v:%v", replacer.Replace(p.host), img.Namespace, img.Name, tag))
 	}
 	return topImages, nil
@@ -79,23 +84,24 @@ func (p *Provider) GetPopularImages(ctx context.Context, top int) ([]string, err
 func (p *Provider) getImageTags(namespace, img string) (string, error) {
 	req, err := http.NewRequest("GET", p.host+fmt.Sprintf(getAllTags, namespace, img), nil)
 	if err != nil {
-		return "latest", err
+		return "", err
 	}
 	req.Header.Add("Accept", "application/json")
 	req.Header.Add("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%v:%v", p.user, p.password))))
 	resp, err := p.client.Do(req)
 	if err != nil {
-		return "latest", err
+		return "", err
 	}
+	defer resp.Body.Close()
 	type response struct {
 		Name      string
 		UpdatedAt string
 	}
 	tags := []response{}
 	if err = json.NewDecoder(resp.Body).Decode(&tags); err != nil {
-		return "latest", err
+		return "", err
 	}
-	latestTag := "latest"
+	latestTag := ""
 	maxUpdateTime := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
 	for _, t := range tags {
 		updateAt, _ := time.Parse(time.RFC3339, t.UpdatedAt)

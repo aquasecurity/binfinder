@@ -50,6 +50,7 @@ func (p *Provider) GetPopularImages(ctx context.Context, top int) ([]string, err
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	type response struct {
 		Repositories []string
 	}
@@ -84,6 +85,7 @@ func (p *Provider) getImageTags(img string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	type response struct {
 		Tags []string
 	}

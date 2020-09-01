@@ -224,6 +224,9 @@ func pullImage(imageName string) {
 		rc, err := cli.ImagePull(context.Background(), imageName, types.ImagePullOptions{
 			RegistryAuth: authStr,
 		})
+		if err != nil {
+			log.Fatal(err)
+		}
 		if _, err = ioutil.ReadAll(rc); err != nil {
 			log.Printf("error marshalling DTR credentials: %v", err)
 			return
@@ -277,6 +280,9 @@ func fetchAlpineDiff(imageName string) {
 	for p := range allPackages {
 		out, err = exec.Command("docker",
 			strings.Split(fmt.Sprintf(argsAPKInfo, imageName, p), " ")...).Output()
+		if err != nil {
+			continue
+		}
 		for _, f := range strings.Split(string(out), "\n") {
 			f = strings.TrimSpace(f)
 			if f != "" && !strings.HasSuffix(f, "contains:") {
