@@ -16,7 +16,7 @@ import (
 
 const (
 	getALlRepo = "/api/v0/repositories"
-	getAllTags = "api/v0/repositories/%v/%v/tags"
+	getAllTags = "/api/v0/repositories/%v/%v/tags"
 )
 
 var (
