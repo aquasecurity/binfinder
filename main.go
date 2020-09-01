@@ -112,9 +112,11 @@ func main() {
 	concurrency := make(chan bool, workers)
 	wg := &sync.WaitGroup{}
 	for _, img := range strings.Split(*images, ",") {
+		// to capture cases when images are scraped from dockerhub explore page, and we don't know if "latest" is valid tag or not
 		if img == "elasticsearch" {
 			img = "elasticsearch:7.9.0"
 		}
+		// to capture cases when images are scraped from dockerhub explore page, and we don't know if "latest" is valid tag or not
 		if img == "logstash" {
 			img = "logstash:7.9.0"
 		}
