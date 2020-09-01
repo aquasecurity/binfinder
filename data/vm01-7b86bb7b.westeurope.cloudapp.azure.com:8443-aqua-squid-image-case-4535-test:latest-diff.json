@@ -1,0 +1,6 @@
+{
+ "ImageName": "vm01-7b86bb7b.westeurope.cloudapp.azure.com:8443/aqua/squid-image-case-4535-test:latest",
+ "ELFNames": [
+  "/var/lib/dpkg/info/bash.preinst"
+ ]
+}

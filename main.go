@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/csv"
 	"encoding/json"
 	"flag"
@@ -17,8 +18,12 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/docker/docker/api/types"
+	dockerClient "github.com/docker/docker/client"
+
 	"github.com/aquasecurity/binfinder/pkg/repository/popular"
 	"github.com/aquasecurity/binfinder/pkg/repository/popular/docker"
+	dtrRepo "github.com/aquasecurity/binfinder/pkg/repository/popular/dtr"
 	"github.com/aquasecurity/binfinder/pkg/repository/popular/registryV2"
 )
 
@@ -32,6 +37,7 @@ var (
 	topN      = flag.Int("top", 0, "top images to run binfinder")
 	analyze   = flag.Bool("analyze", false, "run analysis on diff saved in data folder")
 
+	dtr      = flag.Bool("dtr", false, "use DTR API")
 	registry = flag.String("registry", "", "pulls images from registry")
 	user     = flag.String("user", "", "registry user")
 	password = flag.String("password", "", "registry password")
@@ -52,6 +58,8 @@ var (
 	argsAPKInfo      = `run -u root --rm --entrypoint apk %v info -L %v`
 
 	imageProvider popular.ImageProvider
+
+	cli *dockerClient.Client
 )
 
 type Diffs struct {
@@ -72,7 +80,17 @@ func main() {
 	}
 	if *topN > 0 {
 		if *registry != "" {
-			imageProvider = registryV2.NewPopularProvider(*registry)
+			if *dtr == true {
+				var err error
+				cli, err = dockerClient.NewEnvClient()
+				if err != nil {
+					log.Printf("error creating docker client for DTR: %v", err)
+					return
+				}
+				imageProvider = dtrRepo.NewPopularProvider(*registry, *user, *password)
+			} else {
+				imageProvider = registryV2.NewPopularProvider(*registry)
+			}
 		} else {
 			imageProvider = docker.NewPopularProvider()
 		}
@@ -190,9 +208,29 @@ func exportAnalysis() {
 
 func pullImage(imageName string) {
 	fmt.Printf("Pulling image: %v...\n", imageName)
-	_, err := exec.Command("docker", "pull", imageName).Output()
-	if err != nil {
-		log.Fatal(err)
+	if *dtr {
+		authConfig := types.AuthConfig{
+			Username: *user,
+			Password: *password,
+		}
+		encodedJSON, err := json.Marshal(authConfig)
+		if err != nil {
+			log.Printf("error marshalling DTR credentials: %v", err)
+			return
+		}
+		authStr := base64.URLEncoding.EncodeToString(encodedJSON)
+		rc, err := cli.ImagePull(context.Background(), imageName, types.ImagePullOptions{
+			RegistryAuth: authStr,
+		})
+		if _, err = ioutil.ReadAll(rc); err != nil {
+			log.Printf("error marshalling DTR credentials: %v", err)
+			return
+		}
+	} else {
+		_, err := exec.Command("docker", "pull", imageName).Output()
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 	fmt.Printf("Pulled image: %v...\n", imageName)
 	return

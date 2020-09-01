@@ -24,6 +24,12 @@ $ ./binfinder --top=10 --registry=http://localhost:5000 --output data
 ```
 CLI will pull images from repositry and check for binary diffs.
 
+To run binfinder on DTR registry pass `--registry host --dtr --user={USER} --password={PASSWORD}` flag to CLI
+```
+$ ./binfinder --top=10 --registry=https://vm01-7b86bb7b.westeurope.cloudapp.azure.com:8443 --dtr --user={user} --password={password} --output data
+```
+CLI will pull images from DTR and check for binary diffs.
+
 ## Note:
 * Binfinder requires shell files alpine.sh, ubuntu.sh, centos.sh, and centos_get_all_pkg.sh files to work, these shell files
 must be present in the directory from where the command is to be executed.
