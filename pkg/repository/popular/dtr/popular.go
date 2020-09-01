@@ -82,6 +82,7 @@ func (p *Provider) getImageTags(namespace, img string) (string, error) {
 		return "latest", err
 	}
 	req.Header.Add("Accept", "application/json")
+	req.Header.Add("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%v:%v", p.user, p.password))))
 	resp, err := p.client.Do(req)
 	if err != nil {
 		return "latest", err

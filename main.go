@@ -80,16 +80,16 @@ func main() {
 	}
 	if *topN > 0 {
 		if *registry != "" {
+			var err error
+			cli, err = dockerClient.NewEnvClient()
+			if err != nil {
+				log.Printf("error creating docker client for DTR: %v", err)
+				return
+			}
 			if *dtr == true {
-				var err error
-				cli, err = dockerClient.NewEnvClient()
-				if err != nil {
-					log.Printf("error creating docker client for DTR: %v", err)
-					return
-				}
 				imageProvider = dtrRepo.NewPopularProvider(*registry, *user, *password)
 			} else {
-				imageProvider = registryV2.NewPopularProvider(*registry)
+				imageProvider = registryV2.NewPopularProvider(*registry, *user, *password)
 			}
 		} else {
 			imageProvider = docker.NewPopularProvider()
@@ -210,7 +210,7 @@ func exportAnalysis() {
 
 func pullImage(imageName string) {
 	fmt.Printf("Pulling image: %v...\n", imageName)
-	if *dtr {
+	if *user != "" {
 		authConfig := types.AuthConfig{
 			Username: *user,
 			Password: *password,
