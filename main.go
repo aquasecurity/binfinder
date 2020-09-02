@@ -247,6 +247,8 @@ func getOS(imageName string) (string, error) {
 		strings.Split(fmt.Sprintf(checkOSName, imageName), " ")...).Output()
 	if err != nil {
 		// check for centOS
+		// TODO: Is this only needed for centos:6?
+		// What else is there that we need to cover?
 		out, err = exec.Command("docker",
 			strings.Split(fmt.Sprintf(checkCentOSName, imageName), " ")...).Output()
 		if err != nil {
