@@ -75,7 +75,7 @@ func main() {
 		}
 	}
 	if *analyze {
-		exportAnalysis()
+		exportAnalysis("analysis.csv")
 		return
 	}
 	if *topN > 0 {
@@ -160,7 +160,7 @@ func main() {
 	wg.Wait()
 }
 
-func exportAnalysis() {
+func exportAnalysis(outputFile string) {
 	diffFileCount := make(map[string]int64)
 	filepath.Walk(*outputDir, func(path string, info os.FileInfo, err error) error {
 		if strings.HasSuffix(info.Name(), ".json") {
@@ -194,12 +194,17 @@ func exportAnalysis() {
 	for k, v := range diffFileCount {
 		counts = append(counts, binCount{name: k, count: v})
 	}
+
 	sort.Slice(counts, func(i, j int) bool {
-		return counts[i].count > counts[j].count
+		if counts[i].count > counts[j].count {
+			return true
+		}
+
+		return sort.StringsAreSorted([]string{counts[i].name, counts[j].name}) // if counts are equal sort by name
 	})
-	f, err := os.Create("analysis.csv")
+	f, err := os.Create(outputFile)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(err) // FIXME: Avoid use of log.Fatal as it makes it untestable, return err and handle it.
 	}
 	w := csv.NewWriter(f)
 	defer w.Flush()
@@ -234,7 +239,7 @@ func pullImage(imageName string) error {
 	} else {
 		_, err := exec.Command("docker", "pull", imageName).Output()
 		if err != nil {
-			log.Fatal(err)  // FIXME: Avoid use of log.Fatal as it makes it untestable, return err and handle it.
+			log.Fatal(err) // FIXME: Avoid use of log.Fatal as it makes it untestable, return err and handle it.
 		}
 	}
 	fmt.Printf("Pulled image: %v...\n", imageName)

@@ -2,69 +2,72 @@ package main
 
 import (
 	"errors"
-	"github.com/stretchr/testify/assert"
+	"io/ioutil"
+	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetOS(t *testing.T) {
 	testCases := []struct {
-		name string
-		inputImageName string
+		name            string
+		inputImageName  string
 		outputImageName string
-		expectedErr error
+		expectedErr     error
 	}{
 		{
-			name: "alpine",
-			inputImageName: "alpine:3.10",
+			name:            "alpine",
+			inputImageName:  "alpine:3.10",
 			outputImageName: `NAME="Alpine Linux"`,
 		},
 		{
-			name: "ubuntu",
-			inputImageName: "ubuntu:xenial",
+			name:            "ubuntu",
+			inputImageName:  "ubuntu:xenial",
 			outputImageName: `NAME="Ubuntu"`,
 		},
 		{
-			name: "centos",
-			inputImageName: "centos:6",
+			name:            "centos",
+			inputImageName:  "centos:6",
 			outputImageName: `CentOS release 6.10 (Final)`,
 		},
 		{
-			name: "centos",
-			inputImageName: "centos:7",
+			name:            "centos",
+			inputImageName:  "centos:7",
 			outputImageName: `NAME="CentOS Linux"`,
 		},
 	}
 
-	for _, tc := range testCases{
+	for _, tc := range testCases {
 		os, err := getOS(tc.inputImageName)
 		assert.Equal(t, tc.expectedErr, err, tc.name)
 		assert.Equal(t, tc.outputImageName, os, tc.name)
 	}
 }
 
-func TestPullImage(t *testing.T){
-	testcases := []struct{
-		name string
-		username string
-		password string
+func TestPullImage(t *testing.T) {
+	testcases := []struct {
+		name        string
+		username    string
+		password    string
 		expectedErr error
 	}{
 		{
 			name: "happy path, no username and pass",
 		},
 		{ // FIXME: This case fails, it should pass.
-			name: "happy path, username and password set",
+			name:     "happy path, username and password set",
 			username: "foouser",
 			password: "foopass",
 		},
 		{ // FIXME: This should return a meaningful error that tells that password is not set.
-			name: "sad path, only username set",
-			username: "foouser",
+			name:        "sad path, only username set",
+			username:    "foouser",
 			expectedErr: errors.New("password not set"),
 		},
 	}
 
-	for _, tc := range testcases{
+	for _, tc := range testcases {
 		if tc.username != "" {
 			user = &tc.username
 		}
@@ -75,5 +78,60 @@ func TestPullImage(t *testing.T){
 
 		err := pullImage("alpine:3.10")
 		assert.Equal(t, tc.expectedErr, err, tc.name)
+	}
+}
+
+func TestExportAnalysis(t *testing.T) {
+	testcases := []struct {
+		name           string
+		goldenDir      string
+		expectedOutput string
+		expectedErr    error
+	}{
+		{
+			name:      "happy path, good data only",
+			goldenDir: "goldens/good-data",
+			expectedOutput: `/usr/bin/grep,1
+		/usr/bin/rpm,1
+		/usr/bin/sed,1
+		/usr/sbin/chkconfig,1
+		/usr/sbin/install-info,1
+		/usr/sbin/ldconfig,1
+		`,
+		},
+		{ // FIXME: This test case currently fails
+			name:      "happy path, good and bad data",
+			goldenDir: "goldens/good-and-bad-data",
+			expectedOutput: `/usr/bin/grep,1
+		/usr/bin/rpm,1
+		/usr/bin/sed,1
+		/usr/sbin/chkconfig,1
+		/usr/sbin/install-info,1
+		/usr/sbin/ldconfig,1
+		`,
+		},
+		{
+			name:      "happy path, empty valid dir with no files",
+			goldenDir: "goldens/empty-data",
+		},
+		{ // FIXME: This test case induces a panic
+			name:      "sad path, invalid data dir",
+			goldenDir: "foobarbaz",
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			outputDir = &tc.goldenDir
+			d, _ := ioutil.TempFile("", "TestExportAnalysis-*")
+			defer func() {
+				os.RemoveAll(d.Name())
+			}()
+			exportAnalysis(d.Name())
+
+			b, err := ioutil.ReadFile(d.Name())
+			assert.Equal(t, tc.expectedErr, err, tc.name)
+			assert.Equal(t, tc.expectedOutput, string(b), tc.name)
+		})
 	}
 }
