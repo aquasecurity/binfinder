@@ -208,7 +208,7 @@ func exportAnalysis() {
 	}
 }
 
-func pullImage(imageName string) {
+func pullImage(imageName string) error {
 	fmt.Printf("Pulling image: %v...\n", imageName)
 	if *user != "" {
 		authConfig := types.AuthConfig{
@@ -218,27 +218,27 @@ func pullImage(imageName string) {
 		encodedJSON, err := json.Marshal(authConfig)
 		if err != nil {
 			log.Printf("error marshalling DTR credentials: %v", err)
-			return
+			return err
 		}
 		authStr := base64.URLEncoding.EncodeToString(encodedJSON)
-		rc, err := cli.ImagePull(context.Background(), imageName, types.ImagePullOptions{
+		rc, err := cli.ImagePull(context.Background(), imageName, types.ImagePullOptions{ // FIXME: rc needs to be closed by the caller.
 			RegistryAuth: authStr,
 		})
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal(err) // FIXME: Avoid use of log.Fatal as it makes it untestable, return err and handle it.
 		}
-		if _, err = ioutil.ReadAll(rc); err != nil {
-			log.Printf("error marshalling DTR credentials: %v", err)
-			return
+		if _, err = ioutil.ReadAll(rc); err != nil { // Q: What does this do?
+			log.Printf("error marshalling DTR credentials: %v", err) // Q: I don't think this is the right error string to show.
+			return err
 		}
 	} else {
 		_, err := exec.Command("docker", "pull", imageName).Output()
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal(err)  // FIXME: Avoid use of log.Fatal as it makes it untestable, return err and handle it.
 		}
 	}
 	fmt.Printf("Pulled image: %v...\n", imageName)
-	return
+	return nil
 }
 
 func getOS(imageName string) (string, error) {
@@ -247,8 +247,8 @@ func getOS(imageName string) (string, error) {
 		strings.Split(fmt.Sprintf(checkOSName, imageName), " ")...).Output()
 	if err != nil {
 		// check for centOS
-		// TODO: Is this only needed for centos:6?
-		// What else is there that we need to cover?
+		// Q: Is this only needed for centos:6?
+		// Q: What else is there that we need to cover?
 		out, err = exec.Command("docker",
 			strings.Split(fmt.Sprintf(checkCentOSName, imageName), " ")...).Output()
 		if err != nil {
