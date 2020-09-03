@@ -1,2 +1,3 @@
 apk add file > /dev/null 2>&1
-find / -executable -type f -exec file {} \; | grep -i elf
+apk --no-cache add findutils > /dev/null 2>&1
+find / -type f -exec file {} \; | grep -i elf

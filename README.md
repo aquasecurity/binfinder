@@ -1,6 +1,20 @@
 # binfinder
 Find binary files not installed through package manager
 
+
+## Prerequisites
+
+### Software
+
+- go version &gt;= 1.12.4 <https://golang.org/>
+  - if you're on a sensible o/s: `$ pacman -S go go-tools`
+  - if you're on Mac, you can install using Brew `brew install go`
+    - You can install brew using `ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"`
+  - for Windows/installers please visit [Golang Downloads](https://golang.org/dl/)
+- docker version &gt;= 19
+  - for download please visit [Docker Downlaods](https://docs.docker.com/engine/install/)
+
+
 ## How to run the binfinder
 You can initiatite the build of server using command
 ```bash
