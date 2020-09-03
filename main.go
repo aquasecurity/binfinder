@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/csv"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -165,9 +166,13 @@ func isDockerDaemonRunning() bool {
 	}
 	return true
 }
+
 func exportAnalysis(outputFile string) {
 	diffFileCount := make(map[string]int64)
 	filepath.Walk(*outputDir, func(path string, info os.FileInfo, err error) error {
+		if info == nil {
+			return nil
+		}
 		if strings.HasSuffix(info.Name(), ".json") {
 			f, err := os.Open(path)
 			if err != nil {
@@ -180,7 +185,8 @@ func exportAnalysis(outputFile string) {
 			}
 			var d Diffs
 			if err = json.Unmarshal(c, &d); err != nil {
-				return err
+				log.Printf("%v found invalid json file: %v", info.Name(), err)
+				return nil
 			}
 			for _, e := range d.ELFNames {
 				if _, ok := diffFileCount[e]; !ok {
@@ -199,7 +205,6 @@ func exportAnalysis(outputFile string) {
 	for k, v := range diffFileCount {
 		counts = append(counts, binCount{name: k, count: v})
 	}
-
 	sort.Slice(counts, func(i, j int) bool {
 		if counts[i].count > counts[j].count {
 			return true
@@ -209,56 +214,68 @@ func exportAnalysis(outputFile string) {
 	})
 	f, err := os.Create(outputFile)
 	if err != nil {
-		log.Fatal(err) // FIXME: Avoid use of log.Fatal as it makes it untestable, return err and handle it.
+		log.Printf("error exporting analysis, got error: %v", err)
+		return
 	}
 	w := csv.NewWriter(f)
 	defer w.Flush()
 	for _, c := range counts {
-		w.Write([]string{c.name, fmt.Sprintf("%v", c.count)})
+		if err = w.Write([]string{c.name, fmt.Sprintf("%v", c.count)}); err != nil {
+			log.Printf("error writing row to CSV analysis, got error: %v", err)
+		}
 	}
 }
 
 func pullImage(imageName string) error {
 	fmt.Printf("Pulling image: %v...\n", imageName)
 	if *user != "" {
+		if *password == "" {
+			return errors.New(fmt.Sprintf("%v: pull image expects valid password for user", imageName))
+		}
 		authConfig := types.AuthConfig{
 			Username: *user,
 			Password: *password,
 		}
 		encodedJSON, err := json.Marshal(authConfig)
 		if err != nil {
-			log.Printf("error marshalling DTR credentials: %v", err)
+			log.Printf("error marshalling registry credentials: %v", err)
 			return err
 		}
 		authStr := base64.URLEncoding.EncodeToString(encodedJSON)
-		rc, err := cli.ImagePull(context.Background(), imageName, types.ImagePullOptions{ // FIXME: rc needs to be closed by the caller.
+		imageNameWithHost := imageName
+		if *registry == "" {
+			imageNameWithHost = "docker.io/library/" + imageName
+		}
+		rc, err := cli.ImagePull(context.Background(), imageNameWithHost, types.ImagePullOptions{
 			RegistryAuth: authStr,
 		})
 		if err != nil {
-			log.Fatal(err) // FIXME: Avoid use of log.Fatal as it makes it untestable, return err and handle it.
-		}
-		if _, err = ioutil.ReadAll(rc); err != nil { // Q: What does this do?
-			log.Printf("error marshalling DTR credentials: %v", err) // Q: I don't think this is the right error string to show.
+			log.Printf("%v: error pulling image: %v", imageName, err)
 			return err
 		}
-	} else {
-		_, err := exec.Command("docker", "pull", imageName).Output()
-		if err != nil {
-			log.Fatal(err) // FIXME: Avoid use of log.Fatal as it makes it untestable, return err and handle it.
-		}
+		return rc.Close()
+	}
+	_, err := exec.Command("docker", "pull", imageName).Output()
+	if err != nil {
+		log.Printf("%v: error pulling image: %v", imageName, err)
+		return err
 	}
 	fmt.Printf("Pulled image: %v...\n", imageName)
 	return nil
 }
 
 func getOS(imageName string) (string, error) {
-	pullImage(imageName)
+	if err := pullImage(imageName); err != nil {
+		return "", err
+	}
 	out, err := exec.Command("docker",
 		strings.Split(fmt.Sprintf(checkOSName, imageName), " ")...).Output()
 	if err != nil {
 		// check for centOS
 		// Q: Is this only needed for centos:6?
+		// Ans: Yes for centos based images the OS information is kept in /etc/centos-release, while in other OS its /etc/os-release.
 		// Q: What else is there that we need to cover?
+		// Ans: Did not find any other image which fails in top 50 images from docker one case way busybox based image they also don't had any OS check file
 		out, err = exec.Command("docker",
 			strings.Split(fmt.Sprintf(checkCentOSName, imageName), " ")...).Output()
 		if err != nil {

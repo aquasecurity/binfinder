@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	dockerClient "github.com/docker/docker/client"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -64,13 +65,13 @@ func TestPullImage(t *testing.T) {
 		},
 		{ // FIXME: This case fails, it should pass.
 			name:     "happy path, username and password set",
-			username: "foouser",
-			password: "foopass",
+			username: "rahul23",
+			password: "Rahul@kiet1",
 		},
 		{ // FIXME: This should return a meaningful error that tells that password is not set.
 			name:        "sad path, only username set",
 			username:    "foouser",
-			expectedErr: errors.New("password not set"),
+			expectedErr: errors.New("alpine:3.10: pull image expects valid password for user"),
 		},
 	}
 
@@ -82,8 +83,10 @@ func TestPullImage(t *testing.T) {
 		if tc.password != "" {
 			password = &tc.password
 		}
-
-		err := pullImage("alpine:3.10")
+		var err error
+		cli, err = dockerClient.NewEnvClient()
+		require.Nil(t, err)
+		err = pullImage("alpine:3.10")
 		assert.Equal(t, tc.expectedErr, err, tc.name)
 	}
 }
@@ -99,29 +102,29 @@ func TestExportAnalysis(t *testing.T) {
 			name:      "happy path, good data only",
 			goldenDir: "goldens/good-data",
 			expectedOutput: `/usr/bin/grep,1
-		/usr/bin/rpm,1
-		/usr/bin/sed,1
-		/usr/sbin/chkconfig,1
-		/usr/sbin/install-info,1
-		/usr/sbin/ldconfig,1
-		`,
+/usr/bin/rpm,1
+/usr/bin/sed,1
+/usr/sbin/chkconfig,1
+/usr/sbin/install-info,1
+/usr/sbin/ldconfig,1
+`,
 		},
-		{ // FIXME: This test case currently fails
+		{
 			name:      "happy path, good and bad data",
 			goldenDir: "goldens/good-and-bad-data",
 			expectedOutput: `/usr/bin/grep,1
-		/usr/bin/rpm,1
-		/usr/bin/sed,1
-		/usr/sbin/chkconfig,1
-		/usr/sbin/install-info,1
-		/usr/sbin/ldconfig,1
-		`,
+/usr/bin/rpm,1
+/usr/bin/sed,1
+/usr/sbin/chkconfig,1
+/usr/sbin/install-info,1
+/usr/sbin/ldconfig,1
+`,
 		},
 		{
 			name:      "happy path, empty valid dir with no files",
 			goldenDir: "goldens/empty-data",
 		},
-		{ // FIXME: This test case induces a panic
+		{
 			name:      "sad path, invalid data dir",
 			goldenDir: "foobarbaz",
 		},
@@ -135,7 +138,6 @@ func TestExportAnalysis(t *testing.T) {
 				os.RemoveAll(d.Name())
 			}()
 			exportAnalysis(d.Name())
-
 			b, err := ioutil.ReadFile(d.Name())
 			assert.Equal(t, tc.expectedErr, err, tc.name)
 			assert.Equal(t, tc.expectedOutput, string(b), tc.name)
