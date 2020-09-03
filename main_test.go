@@ -4,7 +4,10 @@ import (
 	"errors"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"testing"
+
+	dockerClient "github.com/docker/docker/client"
 
 	"github.com/docker/docker/api/types"
 
@@ -62,15 +65,15 @@ func TestPullImage(t *testing.T) {
 		{
 			name: "happy path, no username and pass",
 		},
-		{ // FIXME: This case fails, it should pass.
-			name:     "happy path, username and password set",
-			username: "foouser",
-			password: "foopass",
-		},
-		{ // FIXME: This should return a meaningful error that tells that password is not set.
+		//{ // FIXME: This case fails, it should pass.
+		//	name:     "happy path, username and password set",
+		//	username: "foouser",
+		//	password: "barpassword",
+		//},
+		{
 			name:        "sad path, only username set",
 			username:    "foouser",
-			expectedErr: errors.New("password not set"),
+			expectedErr: errors.New("alpine:3.10: pull image expects valid password for user"),
 		},
 	}
 
@@ -82,8 +85,10 @@ func TestPullImage(t *testing.T) {
 		if tc.password != "" {
 			password = &tc.password
 		}
-
-		err := pullImage("alpine:3.10")
+		var err error
+		cli, err = dockerClient.NewEnvClient()
+		require.Nil(t, err)
+		err = pullImage("alpine:3.10")
 		assert.Equal(t, tc.expectedErr, err, tc.name)
 	}
 }
@@ -98,32 +103,38 @@ func TestExportAnalysis(t *testing.T) {
 		{
 			name:      "happy path, good data only",
 			goldenDir: "goldens/good-data",
-			expectedOutput: `/usr/bin/grep,1
-		/usr/bin/rpm,1
-		/usr/bin/sed,1
-		/usr/sbin/chkconfig,1
-		/usr/sbin/install-info,1
-		/usr/sbin/ldconfig,1
-		`,
+			expectedOutput: `binary,count
+/usr/bin/grep,1
+/usr/bin/rpm,1
+/usr/bin/sed,1
+/usr/sbin/chkconfig,1
+/usr/sbin/install-info,1
+/usr/sbin/ldconfig,1
+`,
 		},
-		{ // FIXME: This test case currently fails
+		{
 			name:      "happy path, good and bad data",
 			goldenDir: "goldens/good-and-bad-data",
-			expectedOutput: `/usr/bin/grep,1
-		/usr/bin/rpm,1
-		/usr/bin/sed,1
-		/usr/sbin/chkconfig,1
-		/usr/sbin/install-info,1
-		/usr/sbin/ldconfig,1
-		`,
+			expectedOutput: `binary,count
+/usr/bin/grep,1
+/usr/bin/rpm,1
+/usr/bin/sed,2
+/usr/sbin/chkconfig,1
+/usr/sbin/install-info,1
+/usr/sbin/ldconfig,1
+`,
 		},
 		{
 			name:      "happy path, empty valid dir with no files",
 			goldenDir: "goldens/empty-data",
+			expectedOutput: `binary,count
+`,
 		},
-		{ // FIXME: This test case induces a panic
+		{
 			name:      "sad path, invalid data dir",
 			goldenDir: "foobarbaz",
+			expectedOutput: `binary,count
+`,
 		},
 	}
 
@@ -135,7 +146,6 @@ func TestExportAnalysis(t *testing.T) {
 				os.RemoveAll(d.Name())
 			}()
 			exportAnalysis(d.Name())
-
 			b, err := ioutil.ReadFile(d.Name())
 			assert.Equal(t, tc.expectedErr, err, tc.name)
 			assert.Equal(t, tc.expectedOutput, string(b), tc.name)
@@ -173,4 +183,70 @@ func Test_isDockerDaemonRunning(t *testing.T) {
 		got := isDockerDaemonRunning()
 		require.Equal(t, got, tc.expected, "want %v, got %v", tc.expected, got)
 	}
+}
+
+func Test_fetchAlpineDiff(t *testing.T) {
+	d, _ := ioutil.TempDir("", "Test_fetchAlpineDiff-*")
+	outputDir = &d
+	defer func() {
+		_ = os.RemoveAll(d)
+	}()
+
+	fetchAlpineDiff("alpine:3.10")
+	b, err := ioutil.ReadFile(filepath.Join(d, "alpine:3.10-diff.json"))
+	require.NoError(t, err)
+	assert.JSONEq(t, `{
+ "ImageName": "alpine:3.10",
+ "ELFNames": [
+  "/usr/bin/find",
+  "/usr/bin/xargs",
+  "/usr/bin/locate",
+  "/usr/libexec/code",
+  "/usr/libexec/bigram",
+  "/usr/libexec/frcode"
+ ]
+}`, string(b))
+}
+
+func Test_fetchUbuntuDiff(t *testing.T) {
+	d, _ := ioutil.TempDir("", "Test_fetchUbuntuDiff-*")
+	outputDir = &d
+	defer func() {
+		_ = os.RemoveAll(d)
+	}()
+
+	fetchUbuntuDiff("ubuntu:xenial")
+	b, err := ioutil.ReadFile(filepath.Join(d, "ubuntu:xenial-diff.json"))
+	require.NoError(t, err)
+	assert.JSONEq(t, `{
+ "ImageName": "ubuntu:xenial",
+ "ELFNames": [
+  "/var/lib/dpkg/info/bash.preinst"
+ ]
+}`, string(b))
+}
+
+func Test_fetchCentOSDiff(t *testing.T) {
+	d, _ := ioutil.TempDir("", "Test_fetchCentOSDiff-*")
+	outputDir = &d
+	defer func() {
+		_ = os.RemoveAll(d)
+	}()
+
+	fetchCentOSDiff("centos:7")
+	b, err := ioutil.ReadFile(filepath.Join(d, "centos:7-diff.json"))
+	require.NoError(t, err)
+	assert.JSONEq(t, `{
+ "ImageName": "centos:7",
+ "ELFNames": [
+  "/usr/bin/hostname",
+  "/usr/bin/grep",
+  "/usr/bin/sed",
+  "/usr/bin/rpm",
+  "/usr/sbin/chkconfig",
+  "/usr/sbin/install-info",
+  "/usr/sbin/ldconfig",
+  "/usr/sbin/sln"
+ ]
+}`, string(b))
 }

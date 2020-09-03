@@ -6,3 +6,9 @@ run:
 	echo "running analysis on resulting jsons"
 	./binfinder --analyze
 	echo "done...check analysis.json"
+
+build:
+	go build -o binfinder
+
+clean:
+	rm -f ./binfinder

@@ -2,6 +2,7 @@
  "ImageName": "openjdk",
  "ELFNames": [
   "/usr/bin/sed",
+  "/usr/bin/sed",
   "/usr/bin/rpm",
   "/usr/bin/grep",
   "/usr/sbin/install-info",

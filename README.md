@@ -6,21 +6,15 @@ Find binary files not installed through package manager
 
 ### Software
 
-- go version &gt;= 1.12.4 <https://golang.org/>
-  - if you're on a sensible o/s: `$ pacman -S go go-tools`
-  - if you're on Mac, you can install using Brew `brew install go`
-    - You can install brew using `ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"`
-  - for Windows/installers please visit [Golang Downloads](https://golang.org/dl/)
+- go version &gt;= 1.12 
 - docker version &gt;= 19
-  - for download please visit [Docker Downlaods](https://docs.docker.com/engine/install/)
 
-
-## How to run the binfinder
-You can initiatite the build of server using command
+## How to build and run binfinder
+Build
 ```bash
-$ go build -o binfinder .
+$ make build
 ```
-Once the build is complete, you can run the bindfinder by running:
+Once the build is complete, you can run bindfinder by running:
 ```
 $ ./binfinder --images <comma separated list of image> --output data --top 20
 ```
@@ -44,7 +38,8 @@ $ ./binfinder --top=10 --registry=https://vm01-7b86bb7b.westeurope.cloudapp.azur
 ```
 CLI will pull images from DTR and check for binary diffs.
 
-## Note:
-* Binfinder requires shell files alpine.sh, ubuntu.sh, centos.sh, and centos_get_all_pkg.sh files to work, these shell files
+## Notes:
+* Binfinder requires shell files `alpine.sh`, `ubuntu.sh`, `centos.sh`, and `centos_get_all_pkg.sh` files to work, these shell files
 must be present in the directory from where the command is to be executed.
-* To improve performance pull the docker image before hand.
+* To improve performance pull the docker image prior to running binfinder.
+* Busybox based images are not supported at this time.
