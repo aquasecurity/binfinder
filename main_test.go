@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"testing"
 
 	dockerClient "github.com/docker/docker/client"
@@ -176,4 +177,70 @@ func Test_isDockerDaemonRunning(t *testing.T) {
 		got := isDockerDaemonRunning()
 		require.Equal(t, got, tc.expected, "want %v, got %v", tc.expected, got)
 	}
+}
+
+func Test_fetchAlpineDiff(t *testing.T) {
+	d, _ := ioutil.TempDir("", "Test_fetchAlpineDiff-*")
+	outputDir = &d
+	defer func() {
+		_ = os.RemoveAll(d)
+	}()
+
+	fetchAlpineDiff("alpine:3.10")
+	b, err := ioutil.ReadFile(filepath.Join(d, "alpine:3.10-diff.json"))
+	require.NoError(t, err)
+	assert.JSONEq(t, `{
+ "ImageName": "alpine:3.10",
+ "ELFNames": [
+  "/usr/bin/find",
+  "/usr/bin/xargs",
+  "/usr/bin/locate",
+  "/usr/libexec/code",
+  "/usr/libexec/bigram",
+  "/usr/libexec/frcode"
+ ]
+}`, string(b))
+}
+
+func Test_fetchUbuntuDiff(t *testing.T) {
+	d, _ := ioutil.TempDir("", "Test_fetchUbuntuDiff-*")
+	outputDir = &d
+	defer func() {
+		_ = os.RemoveAll(d)
+	}()
+
+	fetchUbuntuDiff("ubuntu:xenial")
+	b, err := ioutil.ReadFile(filepath.Join(d, "ubuntu:xenial-diff.json"))
+	require.NoError(t, err)
+	assert.JSONEq(t, `{
+ "ImageName": "ubuntu:xenial",
+ "ELFNames": [
+  "/var/lib/dpkg/info/bash.preinst"
+ ]
+}`, string(b))
+}
+
+func Test_fetchCentOSDiff(t *testing.T) {
+	d, _ := ioutil.TempDir("", "Test_fetchCentOSDiff-*")
+	outputDir = &d
+	defer func() {
+		_ = os.RemoveAll(d)
+	}()
+
+	fetchCentOSDiff("centos:7")
+	b, err := ioutil.ReadFile(filepath.Join(d, "centos:7-diff.json"))
+	require.NoError(t, err)
+	assert.JSONEq(t, `{
+ "ImageName": "centos:7",
+ "ELFNames": [
+  "/usr/bin/hostname",
+  "/usr/bin/grep",
+  "/usr/bin/sed",
+  "/usr/bin/rpm",
+  "/usr/sbin/chkconfig",
+  "/usr/sbin/install-info",
+  "/usr/sbin/ldconfig",
+  "/usr/sbin/sln"
+ ]
+}`, string(b))
 }
