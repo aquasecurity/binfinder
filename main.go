@@ -30,15 +30,12 @@ import (
 	"github.com/aquasecurity/binfinder/pkg/repository/popular/registryV2"
 )
 
-const (
-	workers = 1
-)
-
 var (
 	images    = flag.String("images", "", "comma separated images on which to run diff")
 	outputDir = flag.String("output", "data", "output directory to store the diff files")
 	topN      = flag.Int("top", 0, "top images to run binfinder")
 	analyze   = flag.Bool("analyze", false, "run analysis on diff saved in data folder")
+	workers   = flag.Int("workers", 1, "run binfinder in parallel on multiple images")
 
 	dtr      = flag.Bool("dtr", false, "use DTR API")
 	registry = flag.String("registry", "", "pulls images from registry")
@@ -116,7 +113,7 @@ func main() {
 		return
 	}
 
-	concurrency := make(chan bool, workers)
+	concurrency := make(chan bool, *workers)
 	wg := &sync.WaitGroup{}
 	for _, img := range strings.Split(*images, ",") {
 		_, err := os.Stat(fmt.Sprintf("%v/%v", *outputDir, strings.ReplaceAll(img, "/", "-")+"-diff.json"))
