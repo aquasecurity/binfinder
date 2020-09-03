@@ -21,6 +21,7 @@ import (
 	"github.com/docker/docker/api/types"
 	dockerClient "github.com/docker/docker/client"
 
+	"github.com/aquasecurity/binfinder/pkg/contract"
 	"github.com/aquasecurity/binfinder/pkg/repository/popular"
 	"github.com/aquasecurity/binfinder/pkg/repository/popular/docker"
 	dtrRepo "github.com/aquasecurity/binfinder/pkg/repository/popular/dtr"
@@ -59,7 +60,7 @@ var (
 
 	imageProvider popular.ImageProvider
 
-	cli *dockerClient.Client
+	cli contract.DockerContract
 )
 
 type Diffs struct {
@@ -78,14 +79,18 @@ func main() {
 		exportAnalysis()
 		return
 	}
+	var err error
+	cli, err = dockerClient.NewEnvClient()
+	if err != nil {
+		log.Printf("binfinder expects docker daemon running on the machine: %v", err)
+		return
+	}
+	if !isDockerDaemonRunning() {
+		log.Printf("binfinder expects docker daemon running on the machine")
+		return
+	}
 	if *topN > 0 {
 		if *registry != "" {
-			var err error
-			cli, err = dockerClient.NewEnvClient()
-			if err != nil {
-				log.Printf("error creating docker client for DTR: %v", err)
-				return
-			}
 			if *dtr == true {
 				imageProvider = dtrRepo.NewPopularProvider(*registry, *user, *password)
 			} else {
@@ -150,6 +155,14 @@ func main() {
 		}
 	}
 	wg.Wait()
+}
+
+func isDockerDaemonRunning() bool {
+	_, err := cli.Info(context.Background())
+	if err != nil {
+		return false
+	}
+	return true
 }
 
 func exportAnalysis() {
