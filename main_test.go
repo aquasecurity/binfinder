@@ -69,7 +69,7 @@ func TestPullImage(t *testing.T) {
 			username: "rahul23",
 			password: "Rahul@kiet1",
 		},
-		{ // FIXME: This should return a meaningful error that tells that password is not set.
+		{
 			name:        "sad path, only username set",
 			username:    "foouser",
 			expectedErr: errors.New("alpine:3.10: pull image expects valid password for user"),
