@@ -15,12 +15,12 @@ Find binary files not installed through package manager
   - for download please visit [Docker Downlaods](https://docs.docker.com/engine/install/)
 
 
-## How to run the binfinder
-You can initiatite the build of server using command
+## How to build and run binfinder
+Build
 ```bash
-$ go build -o binfinder .
+$ make build
 ```
-Once the build is complete, you can run the bindfinder by running:
+Once the build is complete, you can run bindfinder by running:
 ```
 $ ./binfinder --images <comma separated list of image> --output data --top 20
 ```
