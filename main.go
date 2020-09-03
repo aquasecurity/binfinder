@@ -17,6 +17,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/docker/docker/api/types"
 	dockerClient "github.com/docker/docker/client"
@@ -262,6 +263,7 @@ func getOS(imageName string) (string, error) {
 }
 
 func fetchAlpineDiff(imageName string) {
+	now := time.Now()
 	fmt.Printf("processing image: %v...\n", imageName)
 	diffJson := Diffs{ImageName: imageName}
 	allPackages := make(map[string]bool)
@@ -298,7 +300,8 @@ func fetchAlpineDiff(imageName string) {
 			}
 		}
 	}
-	fmt.Printf("%v: found %v packages\n", imageName, len(pkgELFFiles))
+	fmt.Printf("%v: found %v packages took %v\n", imageName, len(pkgELFFiles), time.Since(now))
+	now = time.Now()
 	pkgELFFiles["/usr/bin/file"] = true
 	currDir, _ := os.Getwd()
 	out, err = exec.Command("docker",
@@ -323,7 +326,7 @@ func fetchAlpineDiff(imageName string) {
 			}
 		}
 	}
-	fmt.Printf("%v: found %v binaries\n", imageName, count)
+	fmt.Printf("%v: found %v binaries took %v\n", imageName, count, time.Since(now))
 	content, err := json.MarshalIndent(diffJson, "", " ")
 	if err != nil {
 		log.Printf("%v: alpine OS, error marshalling diff: %v\n", imageName, err)
@@ -345,6 +348,7 @@ func fetchAlpineDiff(imageName string) {
 }
 
 func fetchUbuntuDiff(imageName string) {
+	now := time.Now()
 	fmt.Printf("processing image: %v...\n", imageName)
 	diffJson := Diffs{ImageName: imageName}
 	fileLists := make(map[string]bool)
@@ -374,7 +378,8 @@ func fetchUbuntuDiff(imageName string) {
 			}
 		}
 	}
-	fmt.Printf("%v: found %v packages\n", imageName, len(pkgELFFiles))
+	fmt.Printf("%v: found %v packages took %v\n", imageName, len(pkgELFFiles), time.Since(now))
+	now = time.Now()
 	pkgELFFiles["/usr/bin/file"] = true
 	currDir, _ := os.Getwd()
 	out, err = exec.Command("docker",
@@ -399,7 +404,7 @@ func fetchUbuntuDiff(imageName string) {
 			}
 		}
 	}
-	fmt.Printf("%v: found %v binaries\n", imageName, count)
+	fmt.Printf("%v: found %v binaries took %v\n", imageName, count, time.Since(now))
 	content, err := json.MarshalIndent(diffJson, "", " ")
 	if err != nil {
 		log.Printf("%v: ubuntu, error marshalling diff: %v\n", imageName, err)
@@ -421,6 +426,7 @@ func fetchUbuntuDiff(imageName string) {
 }
 
 func fetchCentOSDiff(imageName string) {
+	now := time.Now()
 	fmt.Printf("processing image: %v...\n", imageName)
 	diffJson := Diffs{ImageName: imageName}
 	pkgELFFiles := make(map[string]bool)
@@ -440,7 +446,8 @@ func fetchCentOSDiff(imageName string) {
 			pkgELFFiles[f] = true
 		}
 	}
-	fmt.Printf("%v: found %v packages\n", imageName, len(pkgELFFiles))
+	fmt.Printf("%v: found %v packages took %v\n", imageName, len(pkgELFFiles), time.Since(now))
+	now = time.Now()
 	pkgELFFiles["/usr/bin/file"] = true
 	out, err = exec.Command("docker",
 		strings.Split(fmt.Sprintf(argsAllELFFiles, currDir, "centos", "centos", imageName, "centos"), " ")...).Output()
@@ -464,7 +471,7 @@ func fetchCentOSDiff(imageName string) {
 			}
 		}
 	}
-	fmt.Printf("%v: found %v binaries\n", imageName, count)
+	fmt.Printf("%v: found %v binaries took %v\n", imageName, count, time.Since(now))
 	content, err := json.MarshalIndent(diffJson, "", " ")
 	if err != nil {
 		panic(err)
