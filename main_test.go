@@ -2,10 +2,11 @@ package main
 
 import (
 	"errors"
-	dockerClient "github.com/docker/docker/client"
 	"io/ioutil"
 	"os"
 	"testing"
+
+	dockerClient "github.com/docker/docker/client"
 
 	"github.com/docker/docker/api/types"
 
@@ -114,7 +115,7 @@ func TestExportAnalysis(t *testing.T) {
 			goldenDir: "goldens/good-and-bad-data",
 			expectedOutput: `/usr/bin/grep,1
 /usr/bin/rpm,1
-/usr/bin/sed,1
+/usr/bin/sed,2
 /usr/sbin/chkconfig,1
 /usr/sbin/install-info,1
 /usr/sbin/ldconfig,1
