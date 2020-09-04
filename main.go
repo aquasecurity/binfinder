@@ -70,7 +70,7 @@ type Diffs struct {
 func main() {
 	flag.Parse()
 	if *outputDir != "" {
-		if err := os.MkdirAll(*outputDir, os.ModePerm); err != nil {
+		if err := os.MkdirAll(*outputDir, os.ModeDir); err != nil {
 			log.Fatalf("error creating output directory to save diffs: %v", err)
 		}
 	}
