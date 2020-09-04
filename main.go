@@ -359,18 +359,33 @@ func fetchAlpineDiff(imageName string) {
 		}
 	}
 	pkgELFFiles := make(map[string]bool)
+	jobChan := make(chan []string, len(allPackages))
 	for p := range allPackages {
-		out, err = exec.Command("docker",
-			strings.Split(fmt.Sprintf(argsAPKInfo, imageName, p), " ")...).Output()
-		if err != nil {
-			continue
-		}
-		for _, f := range strings.Split(string(out), "\n") {
-			f = strings.TrimSpace(f)
-			if f != "" && !strings.HasSuffix(f, "contains:") {
-				if !strings.HasPrefix(f, "/") {
-					f = "/" + f
+		go func(jobChan chan<- []string, imageName, pkgName string) {
+			var result []string
+			defer func() {
+				jobChan <- result
+			}()
+			out, err := exec.Command("docker",
+				strings.Split(fmt.Sprintf(argsAPKInfo, imageName, pkgName), " ")...).Output()
+			if err != nil {
+				return
+			}
+			for _, f := range strings.Split(string(out), "\n") {
+				f = strings.TrimSpace(f)
+				if f != "" && !strings.HasSuffix(f, "contains:") {
+					if !strings.HasPrefix(f, "/") {
+						f = "/" + f
+					}
+					result = append(result, f)
 				}
+			}
+		}(jobChan, imageName, p)
+	}
+	for jobCount := 0; jobCount < len(allPackages); jobCount++ {
+		select {
+		case files := <-jobChan:
+			for _, f := range files {
 				pkgELFFiles[f] = true
 			}
 		}
