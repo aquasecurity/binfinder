@@ -269,11 +269,8 @@ func getOS(imageName string) (string, error) {
 	out, err := exec.Command("docker",
 		strings.Split(fmt.Sprintf(checkOSName, imageName), " ")...).Output()
 	if err != nil {
-		// check for centOS
-		// Q: Is this only needed for centos:6?
-		// Ans: Yes for centos based images the OS information is kept in /etc/centos-release, while in other OS its /etc/os-release.
-		// Q: What else is there that we need to cover?
-		// Ans: Did not find any other image which fails in top 50 images from docker one case way busybox based image they also don't had any OS check file
+		// for centos based images the OS information is kept in /etc/centos-release
+		// while in other OS its /etc/os-release
 		out, err = exec.Command("docker",
 			strings.Split(fmt.Sprintf(checkCentOSName, imageName), " ")...).Output()
 		if err != nil {
