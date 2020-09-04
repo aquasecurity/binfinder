@@ -203,12 +203,12 @@ func exportAnalysis(outputFile string) {
 	for k, v := range diffFileCount {
 		counts = append(counts, binCount{name: k, count: v})
 	}
+
 	sort.Slice(counts, func(i, j int) bool {
 		if counts[i].count > counts[j].count {
 			return true
 		}
-
-		return sort.StringsAreSorted([]string{counts[i].name, counts[j].name}) // if counts are equal sort by name
+		return false
 	})
 	f, err := os.Create(outputFile)
 	if err != nil {
@@ -217,7 +217,7 @@ func exportAnalysis(outputFile string) {
 	}
 	w := csv.NewWriter(f)
 	defer w.Flush()
-	w.Write([]string{"binary", "count"})
+	_ = w.Write([]string{"binary", "count"})
 	for _, c := range counts {
 		if err = w.Write([]string{c.name, fmt.Sprintf("%v", c.count)}); err != nil {
 			log.Printf("error writing row to CSV analysis, got error: %v", err)

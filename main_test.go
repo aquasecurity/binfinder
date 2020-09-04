@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	dockerClient "github.com/docker/docker/client"
@@ -116,12 +117,12 @@ func TestExportAnalysis(t *testing.T) {
 			name:      "happy path, good and bad data",
 			goldenDir: "goldens/good-and-bad-data",
 			expectedOutput: `binary,count
-/usr/bin/grep,1
-/usr/bin/rpm,1
 /usr/bin/sed,2
-/usr/sbin/chkconfig,1
-/usr/sbin/install-info,1
 /usr/sbin/ldconfig,1
+/usr/sbin/install-info,1
+/usr/sbin/chkconfig,1
+/usr/bin/rpm,1
+/usr/bin/grep,1
 `,
 		},
 		{
@@ -143,12 +144,16 @@ func TestExportAnalysis(t *testing.T) {
 			outputDir = &tc.goldenDir
 			d, _ := ioutil.TempFile("", "TestExportAnalysis-*")
 			defer func() {
-				os.RemoveAll(d.Name())
+				_ = os.RemoveAll(d.Name())
 			}()
 			exportAnalysis(d.Name())
 			b, err := ioutil.ReadFile(d.Name())
 			assert.Equal(t, tc.expectedErr, err, tc.name)
-			assert.Equal(t, tc.expectedOutput, string(b), tc.name)
+
+			want := strings.Split(tc.expectedOutput, "\n")
+			got := strings.Split(string(b), "\n")
+
+			assert.ElementsMatch(t, want, got, tc.name)
 		})
 	}
 }
