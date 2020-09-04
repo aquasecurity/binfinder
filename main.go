@@ -82,7 +82,7 @@ func main() {
 	var err error
 	cli, err = dockerClient.NewEnvClient()
 	if err != nil {
-		log.Printf("binfinder expects docker daemon running on the machine: %v", err)
+		log.Printf("unable to initialize docker client: %v", err)
 		return
 	}
 	if !isDockerDaemonRunning() {
