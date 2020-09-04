@@ -1,0 +1,10 @@
+{
+ "ImageName": "traefik:v2.3.0-rc4",
+ "ELFNames": [
+  "/usr/bin/find",
+  "/usr/bin/xargs",
+  "/usr/bin/locate",
+  "/usr/local/bin/traefik",
+  "/usr/libexec/frcode"
+ ]
+}

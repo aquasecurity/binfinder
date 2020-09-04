@@ -1,0 +1,13 @@
+{
+ "ImageName": "elasticsearch:6.8.12",
+ "ELFNames": [
+  "/usr/bin/hostname",
+  "/usr/bin/grep",
+  "/usr/bin/sed",
+  "/usr/bin/rpm",
+  "/usr/sbin/chkconfig",
+  "/usr/sbin/install-info",
+  "/usr/sbin/ldconfig",
+  "/usr/sbin/sln"
+ ]
+}

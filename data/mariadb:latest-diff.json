@@ -1,0 +1,6 @@
+{
+ "ImageName": "mariadb:latest",
+ "ELFNames": [
+  "/usr/local/bin/gosu"
+ ]
+}
