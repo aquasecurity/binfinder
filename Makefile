@@ -12,3 +12,6 @@ build:
 
 clean:
 	rm -f ./binfinder
+
+test:
+	go test -v
