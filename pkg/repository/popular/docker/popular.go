@@ -47,7 +47,7 @@ func (p *Provider) GetPopularImages(ctx context.Context, top int) ([]string, err
 		for _, img := range images.Summaries {
 			tag, err := p.getImageTags(img.Slug)
 			if err != nil {
-				log.Printf("error fetching the tag for image: %v %w", img, err)
+				log.Printf("error fetching the tag for image: %v %s", img, err.Error())
 				continue
 			}
 			result = append(result, img.Slug+":"+tag)

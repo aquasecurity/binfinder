@@ -62,7 +62,7 @@ func (p *Provider) GetPopularImages(ctx context.Context, top int) ([]string, err
 	for _, img := range image.Repositories {
 		tags, err := p.getImageTags(img)
 		if err != nil {
-			log.Printf("error fetching the tag for image: %v %w", img, err)
+			log.Printf("error fetching the tag for image: %v %s", img, err.Error())
 		}
 		for _, t := range tags {
 			if len(topImages) == top {

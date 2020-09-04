@@ -70,7 +70,7 @@ func (p *Provider) GetPopularImages(ctx context.Context, top int) ([]string, err
 		}
 		tag, err := p.getImageTags(img.Namespace, img.Name)
 		if err != nil {
-			log.Printf("error fetching the tag for image: %v %w", img, err)
+			log.Printf("error fetching the tag for image: %v %s", img, err.Error())
 		}
 		if tag == "" {
 			log.Printf("not found valid tag for image: %v/%v\n", img.Namespace, img.Name)
