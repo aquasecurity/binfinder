@@ -217,6 +217,7 @@ func exportAnalysis(outputFile string) {
 	}
 	w := csv.NewWriter(f)
 	defer w.Flush()
+	w.Write([]string{"binary", "count"})
 	for _, c := range counts {
 		if err = w.Write([]string{c.name, fmt.Sprintf("%v", c.count)}); err != nil {
 			log.Printf("error writing row to CSV analysis, got error: %v", err)

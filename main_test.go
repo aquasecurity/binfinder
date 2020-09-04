@@ -103,7 +103,8 @@ func TestExportAnalysis(t *testing.T) {
 		{
 			name:      "happy path, good data only",
 			goldenDir: "goldens/good-data",
-			expectedOutput: `/usr/bin/grep,1
+			expectedOutput: `binary,count
+/usr/bin/grep,1
 /usr/bin/rpm,1
 /usr/bin/sed,1
 /usr/sbin/chkconfig,1
@@ -114,7 +115,8 @@ func TestExportAnalysis(t *testing.T) {
 		{
 			name:      "happy path, good and bad data",
 			goldenDir: "goldens/good-and-bad-data",
-			expectedOutput: `/usr/bin/grep,1
+			expectedOutput: `binary,count
+/usr/bin/grep,1
 /usr/bin/rpm,1
 /usr/bin/sed,2
 /usr/sbin/chkconfig,1
@@ -125,10 +127,14 @@ func TestExportAnalysis(t *testing.T) {
 		{
 			name:      "happy path, empty valid dir with no files",
 			goldenDir: "goldens/empty-data",
+			expectedOutput: `binary,count
+`,
 		},
 		{
 			name:      "sad path, invalid data dir",
 			goldenDir: "foobarbaz",
+			expectedOutput: `binary,count
+`,
 		},
 	}
 
