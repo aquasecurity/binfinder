@@ -75,6 +75,7 @@ func main() {
 		}
 	}
 	if *analyze {
+		log.Printf("analyzing results and saving to: analysis.csv")
 		exportAnalysis("analysis.csv")
 		return
 	}
