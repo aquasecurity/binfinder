@@ -204,10 +204,10 @@ func Test_fetchAlpineDiff(t *testing.T) {
  "ImageName": "alpine:3.10",
  "ELFNames": [
   "/usr/bin/find",
-  "/usr/bin/xargs",
   "/usr/bin/locate",
-  "/usr/libexec/code",
+  "/usr/bin/xargs",
   "/usr/libexec/bigram",
+  "/usr/libexec/code",
   "/usr/libexec/frcode"
  ]
 }`, string(b))
@@ -244,10 +244,10 @@ func Test_fetchCentOSDiff(t *testing.T) {
 	assert.JSONEq(t, `{
  "ImageName": "centos:7",
  "ELFNames": [
-  "/usr/bin/hostname",
   "/usr/bin/grep",
-  "/usr/bin/sed",
+  "/usr/bin/hostname",
   "/usr/bin/rpm",
+  "/usr/bin/sed",
   "/usr/sbin/chkconfig",
   "/usr/sbin/install-info",
   "/usr/sbin/ldconfig",

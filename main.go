@@ -318,6 +318,9 @@ func findBins(pkgELFFiles map[string]bool, osName string, imageName string, diff
 }
 
 func generateDiffFile(diffJson Diffs, osName string, imageName string) {
+	sort.Slice(diffJson.ELFNames, func(i, j int) bool {
+		return strings.Compare(diffJson.ELFNames[i], diffJson.ELFNames[j]) <= 0
+	})
 	content, err := json.MarshalIndent(diffJson, "", " ")
 	if err != nil {
 		log.Printf("%v: %s, error marshalling diff: %v\n", osName, imageName, err)
