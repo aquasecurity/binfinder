@@ -30,12 +30,12 @@ func TestProvider_GetPopularImages(t *testing.T) {
 			apiResponse: `invalidjson`,
 			expectedErr: "invalid character 'i' looking for beginning of value",
 		},
-		//{ // FIXME: This goes into an infinite loop
-		//	name:           "sad path, invalid tagAPIResponse JSON",
-		//	apiResponse:    `{"Summaries":[{"Name":"foo1","Slug":"slug1"},{"Name":"foo2","Slug":"slug2"}]}`,
-		//	tagAPIResponse: `invalidjson`,
-		//	expectedErr:    "foo",
-		//},
+		{
+			name:           "sad path, invalid tagAPIResponse JSON",
+			apiResponse:    `{"Summaries":[{"Name":"foo1","Slug":"slug1"},{"Name":"foo2","Slug":"slug2"}]}`,
+			tagAPIResponse: `invalidjson`,
+			expectedErr:    "invalid character 'i' looking for beginning of value",
+		},
 	}
 
 	for _, tc := range testCases {
