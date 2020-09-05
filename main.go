@@ -100,12 +100,12 @@ func main() {
 			imageProvider = docker.NewPopularProvider()
 		}
 		ctx := context.Background()
-		popularImges, err := imageProvider.GetPopularImages(ctx, *topN)
+		popularImages, err := imageProvider.GetPopularImages(ctx, *topN)
 		if err != nil {
 			log.Printf("error fetching popular images: %v", err)
 			return
 		}
-		*images = strings.Join(popularImges, ",")
+		*images = strings.Join(popularImages, ",")
 	} else {
 		log.Printf("topN value is 0, running binfinder on images passed by --images flag\n")
 	}
