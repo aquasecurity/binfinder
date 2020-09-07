@@ -1,9 +1,4 @@
 {
  "ImageName": "alpine:edge",
- "ELFNames": [
-  "/usr/bin/find",
-  "/usr/bin/xargs",
-  "/usr/bin/locate",
-  "/usr/libexec/frcode"
- ]
+ "ELFNames": null
 }
