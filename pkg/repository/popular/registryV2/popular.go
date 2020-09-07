@@ -15,13 +15,21 @@ import (
 )
 
 const (
-	getALlRepo = "/v2/_catalog"
-	getAllTags = "/v2/%v/tags/list"
+	getAllRepos = "/v2/_catalog"
+	getAllTags  = "/v2/%v/tags/list"
 )
 
 var (
 	replacer = strings.NewReplacer("https://", "", "http://", "")
 )
+
+type Response struct {
+	Repositories []string
+}
+
+type TagResponse struct {
+	Tags []string
+}
 
 type Provider struct {
 	host, user, password string
@@ -40,7 +48,7 @@ func NewPopularProvider(host, user, password string) popular.ImageProvider {
 }
 
 func (p *Provider) GetPopularImages(ctx context.Context, top int) ([]string, error) {
-	req, err := http.NewRequest("GET", p.host+getALlRepo, nil)
+	req, err := http.NewRequest("GET", p.host+getAllRepos, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -51,10 +59,8 @@ func (p *Provider) GetPopularImages(ctx context.Context, top int) ([]string, err
 		return nil, err
 	}
 	defer resp.Body.Close()
-	type response struct {
-		Repositories []string
-	}
-	image := response{}
+
+	image := Response{}
 	if err = json.NewDecoder(resp.Body).Decode(&image); err != nil {
 		return nil, err
 	}
@@ -86,10 +92,8 @@ func (p *Provider) getImageTags(img string) ([]string, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	type response struct {
-		Tags []string
-	}
-	image := response{}
+
+	image := TagResponse{}
 	if err = json.NewDecoder(resp.Body).Decode(&image); err != nil {
 		return nil, err
 	}
