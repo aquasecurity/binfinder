@@ -202,14 +202,7 @@ func Test_fetchAlpineDiff(t *testing.T) {
 	require.NoError(t, err)
 	assert.JSONEq(t, `{
  "ImageName": "alpine:3.10",
- "ELFNames": [
-  "/usr/bin/find",
-  "/usr/bin/locate",
-  "/usr/bin/xargs",
-  "/usr/libexec/bigram",
-  "/usr/libexec/code",
-  "/usr/libexec/frcode"
- ]
+ "ELFNames": null
 }`, string(b))
 }
 
