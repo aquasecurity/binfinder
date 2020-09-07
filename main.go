@@ -312,7 +312,8 @@ func findBins(pkgELFFiles map[string]bool, osName string, imageName string, diff
 		if len(parts) > 1 {
 			if strings.HasPrefix(strings.TrimSpace(parts[1]), "ELF") &&
 				!strings.HasSuffix(parts[0], ".so") &&
-				!strings.Contains(parts[0], ".so.") {
+				!strings.Contains(parts[0], ".so.") &&
+				!strings.Contains(parts[0], "aquasec") {
 				f = strings.TrimSpace(parts[0])
 				if f != "" {
 					count++
