@@ -293,6 +293,14 @@ func getPackages(osName string, imageName string, command ...string) ([]byte, er
 
 func findBins(pkgELFFiles map[string]bool, osName string, imageName string, diffJson *Diffs, command ...string) int {
 	pkgELFFiles["/usr/bin/file"] = true
+	// binaries from findutils package
+	// source: https://pkgs.alpinelinux.org/contents?branch=edge&name=findutils&arch=x86&repo=main
+	pkgELFFiles["/usr/bin/find"] = true
+	pkgELFFiles["/usr/bin/xargs"] = true
+	pkgELFFiles["/usr/bin/updatedb"] = true
+	pkgELFFiles["/usr/bin/locate"] = true
+	pkgELFFiles["/usr/libexec/frcode"] = true
+
 	out, err := exec.Command("docker", command...).Output()
 	if err != nil {
 		log.Printf("%v: %s OS, error listing all elf files: %v\n", imageName, osName, err)
@@ -303,7 +311,8 @@ func findBins(pkgELFFiles map[string]bool, osName string, imageName string, diff
 		parts := strings.Split(f, ":")
 		if len(parts) > 1 {
 			if strings.HasPrefix(strings.TrimSpace(parts[1]), "ELF") &&
-				!strings.Contains(strings.TrimSpace(parts[1]), "shared object") {
+				!strings.HasSuffix(parts[0], ".so") &&
+				!strings.Contains(parts[0], ".so.") {
 				f = strings.TrimSpace(parts[0])
 				if f != "" {
 					count++
