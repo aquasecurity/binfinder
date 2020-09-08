@@ -67,8 +67,43 @@ type Diffs struct {
 	ELFNames  []string
 }
 
+func Usage() {
+	fmt.Printf(`binfinder requires one argument [top,analyze,images] to run.
+
+Example Usage:
+$ binfinder -analyze # to analyze all existing scanned images
+
+$ binfinder -top [int] # to analyze top X popular of images from registry
+
+$ binfinder -images [image1:tag1,image2:tag2...] # to scan specified images
+
+$ binfinder -top 5 -registry "https://example.registry"  -user "foouser" -password "barpass" -output "bazdir" -workers=5
+
+Modifiers:
+  -output [string]
+	output directory to store the diff files (default: "data")
+  -user [string]
+        registry user
+  -password [string]
+        registry password
+  -dtr
+        use DTR API
+  -registry [string]
+        pulls images from registry
+  -workers [int]
+        run binfinder in parallel on multiple images (default: 1)
+`)
+}
+
 func main() {
 	flag.Parse()
+	flag.Usage = Usage
+
+	if len(os.Args) < 2 {
+		flag.Usage()
+		return
+	}
+
 	if *outputDir != "" {
 		if err := os.MkdirAll(*outputDir, os.ModeDir); err != nil {
 			log.Fatalf("error creating output directory to save diffs: %v", err)
@@ -100,12 +135,12 @@ func main() {
 			imageProvider = docker.NewPopularProvider()
 		}
 		ctx := context.Background()
-		popularImges, err := imageProvider.GetPopularImages(ctx, *topN)
+		popularImages, err := imageProvider.GetPopularImages(ctx, *topN)
 		if err != nil {
 			log.Printf("error fetching popular images: %v", err)
 			return
 		}
-		*images = strings.Join(popularImges, ",")
+		*images = strings.Join(popularImages, ",")
 	} else {
 		log.Printf("topN value is 0, running binfinder on images passed by --images flag\n")
 	}
