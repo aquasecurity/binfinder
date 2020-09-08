@@ -18,19 +18,35 @@ const (
 	dockerTagAPI = "https://hub.docker.com/v2/repositories/library/%v/tags?page=1&page_size=1"
 )
 
+type Response struct {
+	Results []struct {
+		Name string
+	}
+}
+
 type Provider struct {
-	client *http.Client
+	client    *http.Client
+	apiURL    string
+	tagAPIURL string
 }
 
 func NewPopularProvider() popular.ImageProvider {
-	return &Provider{client: &http.Client{Timeout: 10 * time.Second}}
+	return NewPopularProviderWithConfig(10*time.Second, dockerAPI, dockerTagAPI)
+}
+
+func NewPopularProviderWithConfig(timeout time.Duration, apiURL string, tagAPIURL string) popular.ImageProvider {
+	return &Provider{
+		client:    &http.Client{Timeout: timeout},
+		apiURL:    apiURL,
+		tagAPIURL: tagAPIURL,
+	}
 }
 
 func (p *Provider) GetPopularImages(ctx context.Context, top int) ([]string, error) {
 	page := 1
 	var result []string
 	for {
-		req, err := http.NewRequest("GET", fmt.Sprintf(dockerAPI, page), nil)
+		req, err := http.NewRequest("GET", fmt.Sprintf(p.apiURL, page), nil)
 		if err != nil {
 			return nil, err
 		}
@@ -48,7 +64,7 @@ func (p *Provider) GetPopularImages(ctx context.Context, top int) ([]string, err
 			tag, err := p.getImageTags(img.Slug)
 			if err != nil {
 				log.Printf("error fetching the tag for image: %v %s", img, err.Error())
-				continue
+				return result, err
 			}
 			result = append(result, img.Slug+":"+tag)
 			if len(result) == top {
@@ -60,7 +76,7 @@ func (p *Provider) GetPopularImages(ctx context.Context, top int) ([]string, err
 }
 
 func (p *Provider) getImageTags(img string) (string, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf(dockerTagAPI, img), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf(p.tagAPIURL, img), nil)
 	if err != nil {
 		return "", err
 	}
@@ -70,12 +86,8 @@ func (p *Provider) getImageTags(img string) (string, error) {
 		return "", err
 	}
 	defer resp.Body.Close()
-	type response struct {
-		Results []struct {
-			Name string
-		}
-	}
-	image := response{}
+
+	image := Response{}
 	if err = json.NewDecoder(resp.Body).Decode(&image); err != nil {
 		return "", err
 	}

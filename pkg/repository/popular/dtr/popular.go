@@ -15,13 +15,25 @@ import (
 )
 
 const (
-	getALlRepo = "/api/v0/repositories"
-	getAllTags = "/api/v0/repositories/%v/%v/tags"
+	getAllRepos = "/api/v0/repositories"
+	getAllTags  = "/api/v0/repositories/%v/%v/tags"
 )
 
 var (
 	replacer = strings.NewReplacer("https://", "", "http://", "")
 )
+
+type Response struct {
+	Repositories []struct {
+		Namespace string
+		Name      string
+	}
+}
+
+type TagResponse struct {
+	Name      string
+	UpdatedAt string
+}
 
 type Provider struct {
 	host     string
@@ -42,7 +54,7 @@ func NewPopularProvider(host, user, password string) popular.ImageProvider {
 }
 
 func (p *Provider) GetPopularImages(ctx context.Context, top int) ([]string, error) {
-	req, err := http.NewRequest("GET", p.host+getALlRepo, nil)
+	req, err := http.NewRequest("GET", p.host+getAllRepos, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -53,13 +65,8 @@ func (p *Provider) GetPopularImages(ctx context.Context, top int) ([]string, err
 		return nil, err
 	}
 	defer resp.Body.Close()
-	type response struct {
-		Repositories []struct {
-			Namespace string
-			Name      string
-		}
-	}
-	image := response{}
+
+	image := Response{}
 	if err = json.NewDecoder(resp.Body).Decode(&image); err != nil {
 		return nil, err
 	}
@@ -73,7 +80,7 @@ func (p *Provider) GetPopularImages(ctx context.Context, top int) ([]string, err
 			log.Printf("error fetching the tag for image: %v %s", img, err.Error())
 		}
 		if tag == "" {
-			log.Printf("not found valid tag for image: %v/%v\n", img.Namespace, img.Name)
+			log.Printf("no valid tag found for image: %v/%v\n", img.Namespace, img.Name)
 			continue
 		}
 		topImages = append(topImages, fmt.Sprintf("%v/%v/%v:%v", replacer.Replace(p.host), img.Namespace, img.Name, tag))
@@ -93,11 +100,8 @@ func (p *Provider) getImageTags(namespace, img string) (string, error) {
 		return "", err
 	}
 	defer resp.Body.Close()
-	type response struct {
-		Name      string
-		UpdatedAt string
-	}
-	tags := []response{}
+
+	var tags []TagResponse
 	if err = json.NewDecoder(resp.Body).Decode(&tags); err != nil {
 		return "", err
 	}
