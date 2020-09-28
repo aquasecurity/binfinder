@@ -32,7 +32,7 @@ $ ./binfinder --top=10 --registry=http://localhost:5000 --output data
 ```
 CLI will pull images from repositry and check for binary diffs.
 
-To run binfinder on DTR registry pass `--registry host --dtr --user={USER} --password={PASSWORD}` flag to CLI
+To run binfinder on DTR registry pass `--registry={HOSTNAME} --dtr --user={USER} --password={PASSWORD}` flag to CLI
 ```
 $ ./binfinder --top=10 --registry=https://vm01-7b86bb7b.westeurope.cloudapp.azure.com:8443 --dtr --user={user} --password={password} --output data
 ```
