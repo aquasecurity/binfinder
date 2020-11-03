@@ -46,6 +46,7 @@ func (p *Provider) GetPopularImages(ctx context.Context, top int) ([]string, err
 	page := 1
 	var result []string
 	for {
+		log.Println("Fetching page: ", page, "url: ", fmt.Sprintf(p.apiURL, page))
 		req, err := http.NewRequest("GET", fmt.Sprintf(p.apiURL, page), nil)
 		if err != nil {
 			return nil, err
@@ -53,18 +54,24 @@ func (p *Provider) GetPopularImages(ctx context.Context, top int) ([]string, err
 		req.Header.Add("Accept", "application/json")
 		req.Header.Add("Search-Version", "v3")
 		resp, err := p.client.Do(req)
+		defer resp.Body.Close()
 		if err != nil {
+			log.Println("Fetching page failed: ", err)
 			return nil, err
 		}
 		var images model.DockerResp
 		if err = json.NewDecoder(resp.Body).Decode(&images); err != nil {
 			return nil, err
 		}
+
+		log.Println("Found image summaries: ", len(images.Summaries))
 		for _, img := range images.Summaries {
+			//log.Printf("Image info: %v\n", img)
 			tag, err := p.getImageTags(img.Slug)
 			if err != nil {
 				log.Printf("error fetching the tag for image: %v %s", img, err.Error())
-				return result, err
+				continue
+				//return result, err
 			}
 			result = append(result, img.Slug+":"+tag)
 			if len(result) == top {
