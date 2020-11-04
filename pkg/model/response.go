@@ -1,8 +1,8 @@
 package model
 
 type DockerResp struct {
-	Summaries []struct {
+	Next    string
+	Results []struct {
 		Name string
-		Slug string
 	}
 }

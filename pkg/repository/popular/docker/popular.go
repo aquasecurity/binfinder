@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/aquasecurity/binfinder/pkg/model"
@@ -14,8 +15,8 @@ import (
 )
 
 const (
-	dockerAPI    = "https://hub.docker.com/api/content/v1/products/search?image_filter=official&page=%v&page_size=100&q=&type=image"
-	dockerTagAPI = "https://hub.docker.com/v2/repositories/library/%v/tags?page=1&page_size=1"
+	dockerAPI    = "https://hub.docker.com/v2/repositories/library/?page=1&page_size=100"
+	dockerTagAPI = "https://hub.docker.com/v2/repositories/library/%v/tags"
 )
 
 type Response struct {
@@ -43,11 +44,11 @@ func NewPopularProviderWithConfig(timeout time.Duration, apiURL string, tagAPIUR
 }
 
 func (p *Provider) GetPopularImages(ctx context.Context, top int) ([]string, error) {
-	page := 1
 	var result []string
+	apiURL := p.apiURL
 	for {
-		log.Println("Fetching page: ", page, "url: ", fmt.Sprintf(p.apiURL, page))
-		req, err := http.NewRequest("GET", fmt.Sprintf(p.apiURL, page), nil)
+		log.Println("Fetching page: ", apiURL)
+		req, err := http.NewRequest("GET", apiURL, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -64,22 +65,24 @@ func (p *Provider) GetPopularImages(ctx context.Context, top int) ([]string, err
 			return nil, err
 		}
 
-		log.Println("Found image summaries: ", len(images.Summaries))
-		for _, img := range images.Summaries {
-			//log.Printf("Image info: %v\n", img)
-			tag, err := p.getImageTags(img.Slug)
+		log.Println("Found images: ", len(images.Results))
+		for _, img := range images.Results {
+			tag, err := p.getImageTags(strings.ToLower(img.Name))
 			if err != nil {
 				log.Printf("error fetching the tag for image: %v %s", img, err.Error())
 				continue
-				//return result, err
 			}
-			result = append(result, img.Slug+":"+tag)
+			result = append(result, img.Name+":"+tag)
 			if len(result) == top {
 				return result, nil
 			}
 		}
-		page++
+		if images.Next == "" {
+			break
+		}
+		apiURL = images.Next
 	}
+	return result, nil
 }
 
 func (p *Provider) getImageTags(img string) (string, error) {
