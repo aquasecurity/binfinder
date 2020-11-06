@@ -70,6 +70,8 @@ func (p *Provider) GetPopularImages(ctx context.Context, top int) ([]string, err
 	if err = json.NewDecoder(resp.Body).Decode(&image); err != nil {
 		return nil, err
 	}
+
+	log.Println("found repos: ", len(image.Repositories))
 	var topImages []string
 	for _, img := range image.Repositories {
 		if len(topImages) == top {
@@ -85,6 +87,7 @@ func (p *Provider) GetPopularImages(ctx context.Context, top int) ([]string, err
 		}
 		topImages = append(topImages, fmt.Sprintf("%v/%v/%v:%v", replacer.Replace(p.host), img.Namespace, img.Name, tag))
 	}
+	log.Println("num of top images found: ", len(topImages))
 	return topImages, nil
 }
 
@@ -105,6 +108,8 @@ func (p *Provider) getImageTags(namespace, img string) (string, error) {
 	if err = json.NewDecoder(resp.Body).Decode(&tags); err != nil {
 		return "", err
 	}
+
+	log.Println("found tags: ", len(tags), " for image: ", img)
 	latestTag := ""
 	maxUpdateTime := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
 	for _, t := range tags {
@@ -114,5 +119,6 @@ func (p *Provider) getImageTags(namespace, img string) (string, error) {
 			latestTag = t.Name
 		}
 	}
+	log.Println("latest tag: ", latestTag, "for image: ", img)
 	return latestTag, nil
 }
