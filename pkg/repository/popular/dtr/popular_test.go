@@ -17,14 +17,33 @@ func TestProvider_GetPopularImages(t *testing.T) {
 		name             string
 		apiResponse      string
 		tagAPIResponse   string
+		wantNumTopImages int
 		expectedErr      string
-		expectedResponse []string
+		wantImagesList   []string
 	}{
 		{
-			name:             "happy path",
-			apiResponse:      `{"Repositories":[{"Namespace":"foons1","Name":"foo1"},{"Namespace":"foons2","Name":"foo2"}, {"Namespace":"foons3","Name":"foo3"}]}`,
-			tagAPIResponse:   `[{"Name":"oldtag","UpdatedAt":"2020-09-04T19:14:03-07:00"},{"Name":"newtag","UpdatedAt":"2020-09-04T19:25:06-07:00"}]`,
-			expectedResponse: []string{"foons1/foo1:newtag", "foons2/foo2:newtag"},
+			name: "happy path",
+			apiResponse: `{
+	"Repositories": [{
+		"Namespace": "foons1",
+		"Name": "foo1"
+	}, {
+		"Namespace": "foons2",
+		"Name": "foo2"
+	}, {
+		"Namespace": "foons3",
+		"Name": "foo3"
+	}]
+}`,
+			tagAPIResponse: `[{
+	"Name": "oldtag",
+	"UpdatedAt": "2020-09-04T19:14:03-07:00"
+}, {
+	"Name": "newtag",
+	"UpdatedAt": "2020-09-04T19:25:06-07:00"
+}]`,
+			wantNumTopImages: 4,
+			wantImagesList:   []string{"foons1/foo1:newtag", "foons1/foo1:oldtag", "foons2/foo2:newtag", "foons2/foo2:oldtag"},
 		},
 		{
 			name:        "sad path, invalid apiResponse JSON",
@@ -32,10 +51,9 @@ func TestProvider_GetPopularImages(t *testing.T) {
 			expectedErr: "invalid character 'i' looking for beginning of value",
 		},
 		{
-			name:             "sad path, invalid tagAPIResponse JSON",
-			apiResponse:      `{"Repositories":[{"Namespace":"foons1","Name":"foo1"},{"Namespace":"foons2","Name":"foo2"}]}`,
-			tagAPIResponse:   `invalidjson`,
-			expectedResponse: []string{},
+			name:           "sad path, invalid tagAPIResponse JSON",
+			apiResponse:    `{"Repositories":[{"Namespace":"foons1","Name":"foo1"},{"Namespace":"foons2","Name":"foo2"}]}`,
+			tagAPIResponse: `invalidjson`,
 		},
 	}
 
@@ -57,18 +75,21 @@ func TestProvider_GetPopularImages(t *testing.T) {
 			defer tsAPI.Close()
 
 			p := NewPopularProvider(tsAPI.URL, "foouser", "foopassword")
-			got, err := p.GetPopularImages(context.Background(), 2)
+			got, err := p.GetPopularImages(context.Background(), tc.wantNumTopImages)
 			switch {
 			case tc.expectedErr != "":
 				assert.Equal(t, tc.expectedErr, err.Error(), tc.name)
 			default:
 				assert.NoError(t, err, tc.name)
 			}
+
+			var gotImagesList []string
 			re := regexp.MustCompile(`127.0.0.1:\d*/`)
 			for _, g := range got {
 				s := re.Split(g, -1)[1]
-				assert.Contains(t, tc.expectedResponse, s)
+				gotImagesList = append(gotImagesList, s)
 			}
+			assert.Equal(t, tc.wantImagesList, gotImagesList, tc.name)
 		})
 	}
 }
