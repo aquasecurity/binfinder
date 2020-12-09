@@ -14,4 +14,4 @@ clean:
 	rm -f ./binfinder
 
 test:
-	go test -v
+	go test -v ./...
