@@ -31,11 +31,12 @@ import (
 )
 
 var (
-	images    = flag.String("images", "", "comma separated images on which to run diff")
-	outputDir = flag.String("output", "data", "output directory to store the diff files")
-	topN      = flag.Int("top", 0, "top images to run binfinder")
-	analyze   = flag.Bool("analyze", false, "run analysis on diff saved in data folder")
-	workers   = flag.Int("workers", 1, "run binfinder in parallel on multiple images")
+	images        = flag.String("images", "", "comma separated images on which to run diff")
+	outputDir     = flag.String("output", "data", "output directory to store the diff files")
+	topN          = flag.Int("top", 0, "top images to run binfinder")
+	analyze       = flag.Bool("analyze", false, "run analysis on diff saved in data folder")
+	workers       = flag.Int("workers", 1, "run binfinder in parallel on multiple images")
+	enableAllTags = flag.Bool("all_tags", false, "run binfinder on all image tags")
 
 	dtr      = flag.Bool("dtr", false, "use DTR API")
 	registry = flag.String("registry", "", "pulls images from registry")
@@ -92,20 +93,20 @@ Modifiers:
         pulls images from registry
   -workers [int]
         run binfinder in parallel on multiple images (default: 1)
+  -all_tags [bool]
+        run binfinder to get bianry difference on all tags of an docker image. (default: false)
 `)
 }
 
 func main() {
 	flag.Parse()
 	flag.Usage = Usage
-
 	if len(os.Args) < 2 {
 		flag.Usage()
 		return
 	}
-
 	if *outputDir != "" {
-		if err := os.MkdirAll(*outputDir, os.ModeDir); err != nil {
+		if err := os.MkdirAll(*outputDir, os.ModePerm); err != nil {
 			log.Fatalf("error creating output directory to save diffs: %v", err)
 		}
 	}
@@ -135,7 +136,7 @@ func main() {
 			imageProvider = docker.NewPopularProvider()
 		}
 		ctx := context.Background()
-		popularImages, err := imageProvider.GetPopularImages(ctx, *topN)
+		popularImages, err := imageProvider.GetPopularImages(ctx, *topN, *enableAllTags)
 		if err != nil {
 			log.Printf("error fetching popular images: %v", err)
 			return

@@ -43,7 +43,7 @@ func NewPopularProviderWithConfig(timeout time.Duration, apiURL string, tagAPIUR
 	}
 }
 
-func (p *Provider) GetPopularImages(ctx context.Context, top int) ([]string, error) {
+func (p *Provider) GetPopularImages(ctx context.Context, top int, enableAllTags bool) ([]string, error) {
 	var result []string
 	apiURL := p.apiURL
 	for {
@@ -67,14 +67,16 @@ func (p *Provider) GetPopularImages(ctx context.Context, top int) ([]string, err
 
 		log.Println("Found images: ", len(images.Results))
 		for _, img := range images.Results {
-			tag, err := p.getImageTags(strings.ToLower(img.Name))
+			tags, err := p.getImageTags(strings.ToLower(img.Name), enableAllTags)
 			if err != nil {
 				log.Printf("error fetching the tag for image: %v %s", img, err.Error())
 				continue
 			}
-			result = append(result, img.Name+":"+tag)
-			if len(result) == top {
-				return result, nil
+			for _, tag := range tags {
+				result = append(result, img.Name+":"+tag)
+				if len(result) == top {
+					return result, nil
+				}
 			}
 		}
 		if images.Next == "" {
@@ -85,24 +87,31 @@ func (p *Provider) GetPopularImages(ctx context.Context, top int) ([]string, err
 	return result, nil
 }
 
-func (p *Provider) getImageTags(img string) (string, error) {
+func (p *Provider) getImageTags(img string, enableAllTags bool) ([]string, error) {
 	req, err := http.NewRequest("GET", fmt.Sprintf(p.tagAPIURL, img), nil)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	req.Header.Add("Accept", "application/json")
 	resp, err := p.client.Do(req)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	image := Response{}
 	if err = json.NewDecoder(resp.Body).Decode(&image); err != nil {
-		return "", err
+		return nil, err
 	}
 	if len(image.Results) < 1 {
-		return "", errors.New("invalid tag response")
+		return nil, errors.New("invalid tag response")
 	}
-	return image.Results[0].Name, nil
+	var tags []string
+	for _, r := range image.Results {
+		if !enableAllTags {
+			return []string{r.Name}, nil
+		}
+		tags = append(tags, r.Name)
+	}
+	return tags, nil
 }

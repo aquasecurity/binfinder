@@ -20,6 +20,7 @@ func TestProvider_GetPopularImages(t *testing.T) {
 		wantNumTopImages int
 		expectedErr      string
 		wantImagesList   []string
+		enableAllTags    bool
 	}{
 		{
 			name: "happy path",
@@ -43,17 +44,20 @@ func TestProvider_GetPopularImages(t *testing.T) {
 	"UpdatedAt": "2020-09-04T19:25:06-07:00"
 }]`,
 			wantNumTopImages: 4,
-			wantImagesList:   []string{"foons1/foo1:newtag", "foons1/foo1:oldtag", "foons2/foo2:newtag", "foons2/foo2:oldtag"},
+			wantImagesList:   []string{"foons1/foo1:oldtag", "foons1/foo1:newtag", "foons2/foo2:oldtag", "foons2/foo2:newtag"},
+			enableAllTags:    true,
 		},
 		{
-			name:        "sad path, invalid apiResponse JSON",
-			apiResponse: `invalidjson`,
-			expectedErr: "invalid character 'i' looking for beginning of value",
+			name:          "sad path, invalid apiResponse JSON",
+			apiResponse:   `invalidjson`,
+			expectedErr:   "invalid character 'i' looking for beginning of value",
+			enableAllTags: true,
 		},
 		{
 			name:           "sad path, invalid tagAPIResponse JSON",
 			apiResponse:    `{"Repositories":[{"Namespace":"foons1","Name":"foo1"},{"Namespace":"foons2","Name":"foo2"}]}`,
 			tagAPIResponse: `invalidjson`,
+			enableAllTags:  true,
 		},
 	}
 
@@ -75,7 +79,7 @@ func TestProvider_GetPopularImages(t *testing.T) {
 			defer tsAPI.Close()
 
 			p := NewPopularProvider(tsAPI.URL, "foouser", "foopassword")
-			got, err := p.GetPopularImages(context.Background(), tc.wantNumTopImages)
+			got, err := p.GetPopularImages(context.Background(), tc.wantNumTopImages, tc.enableAllTags)
 			switch {
 			case tc.expectedErr != "":
 				assert.Equal(t, tc.expectedErr, err.Error(), tc.name)

@@ -71,7 +71,7 @@ func TestProvider_GetPopularImages(t *testing.T) {
 			defer tsAPI.Close()
 
 			p := NewPopularProvider(tsAPI.URL, "foouser", "foopassword")
-			got, err := p.GetPopularImages(context.Background(), 4)
+			got, err := p.GetPopularImages(context.Background(), 4, false)
 			fmt.Println(got)
 			switch {
 			case tc.expectedErr != "":
