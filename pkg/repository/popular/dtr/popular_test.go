@@ -71,8 +71,12 @@ func TestProvider_GetPopularImages(t *testing.T) {
 				case strings.Contains(r.URL.String(), fmt.Sprintf(getAllTags, "foons2", "foo2")):
 					_, _ = fmt.Fprint(w, tc.tagAPIResponse)
 					return
-				case strings.Contains(r.URL.String(), getAllRepos):
+				case strings.Contains(r.URL.String(), "/api/v0/repositories?pageSize"):
+					assert.Equal(t, fmt.Sprintf("/api/v0/repositories?pageSize=%v", tc.wantNumTopImages), r.URL.String(), tc.name)
 					_, _ = fmt.Fprint(w, tc.apiResponse)
+					return
+				default:
+					assert.Fail(t, fmt.Sprintf("invalid path accessed: %s", r.URL.String()), tc.name)
 					return
 				}
 			}))

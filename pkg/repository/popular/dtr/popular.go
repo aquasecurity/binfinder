@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	getAllRepos = "/api/v0/repositories"
+	getAllRepos = "/api/v0/repositories?pageSize=%v"
 	getAllTags  = "/api/v0/repositories/%v/%v/tags"
 )
 
@@ -54,7 +54,7 @@ func NewPopularProvider(host, user, password string) popular.ImageProvider {
 }
 
 func (p *Provider) GetPopularImages(ctx context.Context, top int, enableAllTags bool) ([]string, error) {
-	req, err := http.NewRequest("GET", p.host+getAllRepos, nil)
+	req, err := http.NewRequest("GET", p.host+fmt.Sprintf(getAllRepos, top), nil)
 	if err != nil {
 		return nil, err
 	}
