@@ -36,7 +36,7 @@ var (
 	topN          = flag.Int("top", 0, "top images to run binfinder")
 	analyze       = flag.Bool("analyze", false, "run analysis on diff saved in data folder")
 	workers       = flag.Int("workers", 1, "run binfinder in parallel on multiple images")
-	enableAllTags = flag.Bool("all_tags", false, "run binfinder on all image tags")
+	enableAllTags = flag.Bool("all-tags", false, "run binfinder on all image tags")
 
 	dtr      = flag.Bool("dtr", false, "use DTR API")
 	registry = flag.String("registry", "", "pulls images from registry")
@@ -93,7 +93,7 @@ Modifiers:
         pulls images from registry
   -workers [int]
         run binfinder in parallel on multiple images (default: 1)
-  -all_tags [bool]
+  -all-tags [bool]
         run binfinder to get bianry difference on all tags of an docker image. (default: false)
 `)
 }
