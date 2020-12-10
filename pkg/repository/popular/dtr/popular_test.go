@@ -48,6 +48,37 @@ func TestProvider_GetPopularImages(t *testing.T) {
 			enableAllTags:    true,
 		},
 		{
+			name: "happy path - only with the latest tag",
+			apiResponse: `{
+	"Repositories": [{
+		"Namespace": "foons1",
+		"Name": "foo1"
+	}, {
+		"Namespace": "foons2",
+		"Name": "foo2"
+	}, {
+		"Namespace": "foons3",
+		"Name": "foo3"
+	}, {
+		"Namespace": "foons4",
+		"Name": "foo4"
+	}, {
+		"Namespace": "foons5",
+		"Name": "foo5"
+	}]
+}`,
+			tagAPIResponse: `[{
+	"Name": "oldtag",
+	"UpdatedAt": "2020-09-04T19:14:03-07:00"
+}, {
+	"Name": "newtag",
+	"UpdatedAt": "2020-09-04T19:25:06-07:00"
+}]`,
+			wantNumTopImages: 4,
+			wantImagesList:   []string{"foons1/foo1:newtag", "foons2/foo2:newtag", "foons3/foo3:newtag", "foons4/foo4:newtag"},
+			enableAllTags:    false,
+		},
+		{
 			name:          "sad path, invalid apiResponse JSON",
 			apiResponse:   `invalidjson`,
 			expectedErr:   "invalid character 'i' looking for beginning of value",
@@ -69,6 +100,12 @@ func TestProvider_GetPopularImages(t *testing.T) {
 					_, _ = fmt.Fprint(w, tc.tagAPIResponse)
 					return
 				case strings.Contains(r.URL.String(), fmt.Sprintf(getAllTags, "foons2", "foo2")):
+					_, _ = fmt.Fprint(w, tc.tagAPIResponse)
+					return
+				case strings.Contains(r.URL.String(), fmt.Sprintf(getAllTags, "foons3", "foo3")):
+					_, _ = fmt.Fprint(w, tc.tagAPIResponse)
+					return
+				case strings.Contains(r.URL.String(), fmt.Sprintf(getAllTags, "foons4", "foo4")):
 					_, _ = fmt.Fprint(w, tc.tagAPIResponse)
 					return
 				case strings.Contains(r.URL.String(), "/api/v0/repositories?pageSize"):
