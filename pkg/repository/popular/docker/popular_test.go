@@ -18,12 +18,66 @@ func TestProvider_GetPopularImages(t *testing.T) {
 		tagAPIResponse   string
 		expectedErr      string
 		expectedResponse []string
+		enableAllTags    bool
 	}{
 		{
-			name:             "happy path",
-			apiResponse:      `{"Summaries":[{"Name":"foo1","Slug":"slug1"},{"Name":"foo2","Slug":"slug2"}]}`,
-			tagAPIResponse:   `{"Results":[{"Name":"tag1"},{"Name":""},{"Name":"tag2"}]}`,
-			expectedResponse: []string{"slug1:tag1", "slug2:tag1", "slug1:tag1", "slug2:tag1", "slug1:tag1"},
+			name: "happy path",
+			apiResponse: `{
+  "Next": "",
+  "Results": [
+    {
+      "Name": "foo1"
+    }, 
+    {
+      "Name": "foo2"
+    }
+  ]
+}`,
+			tagAPIResponse: `{
+  "Results": [
+    {
+      "Name": "tag1"
+    },
+    {
+      "Name": ""
+    },
+    {
+      "Name": "tag2"
+    }
+  ]
+}
+`,
+			expectedResponse: []string{"foo1:tag1", "foo2:tag1"},
+		},
+		{
+			name: "happy path - with enabledAllTags true",
+			apiResponse: `{
+  "Next": "",
+  "Results": [
+    {
+      "Name": "foo1"
+    }, 
+    {
+      "Name": "foo2"
+    }
+  ]
+}`,
+			tagAPIResponse: `{
+  "Results": [
+    {
+      "Name": "tag1"
+    },
+    {
+      "Name": ""
+    },
+    {
+      "Name": "tag2"
+    }
+  ]
+}
+`,
+			enableAllTags:    true,
+			expectedResponse: []string{"foo1:tag1", "foo1:", "foo1:tag2", "foo2:tag1", "foo2:"},
 		},
 		{
 			name:        "sad path, invalid apiResponse JSON",
@@ -31,10 +85,20 @@ func TestProvider_GetPopularImages(t *testing.T) {
 			expectedErr: "invalid character 'i' looking for beginning of value",
 		},
 		{
-			name:           "sad path, invalid tagAPIResponse JSON",
-			apiResponse:    `{"Summaries":[{"Name":"foo1","Slug":"slug1"},{"Name":"foo2","Slug":"slug2"}]}`,
-			tagAPIResponse: `invalidjson`,
-			expectedErr:    "invalid character 'i' looking for beginning of value",
+			name: "sad path, invalid tagAPIResponse JSON",
+			apiResponse: `{
+  "Next": "",
+  "Results": [
+    {
+      "Name": "foo1"
+    }, 
+    {
+      "Name": "foo2"
+    }
+  ]
+}`,
+			tagAPIResponse:   `invalidjson`,
+			expectedResponse: []string(nil),
 		},
 	}
 
@@ -50,15 +114,15 @@ func TestProvider_GetPopularImages(t *testing.T) {
 			}))
 			defer tsTagAPI.Close()
 
-			p := NewPopularProviderWithConfig(1*time.Second, tsAPI.URL+`/%d`, tsTagAPI.URL+`/%s`)
-			got, err := p.GetPopularImages(context.Background(), 5)
+			p := NewPopularProviderWithConfig(1*time.Second, tsAPI.URL, tsTagAPI.URL+`/%s`)
+			got, err := p.GetPopularImages(context.Background(), 5, tc.enableAllTags)
 			switch {
 			case tc.expectedErr != "":
 				assert.Equal(t, tc.expectedErr, err.Error(), tc.name)
 			default:
 				assert.NoError(t, err, tc.name)
 			}
-			assert.ElementsMatch(t, tc.expectedResponse, got, tc.name)
+			assert.Equal(t, tc.expectedResponse, got, tc.name)
 		})
 	}
 }
