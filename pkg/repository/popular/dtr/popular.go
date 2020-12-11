@@ -54,6 +54,8 @@ func NewPopularProvider(host, user, password string) popular.ImageProvider {
 }
 
 func (p *Provider) GetPopularImages(ctx context.Context, top int, enableAllTags bool) ([]string, error) {
+	log.Println("Fetching page: ", p.host+fmt.Sprintf(getAllRepos, top))
+
 	req, err := http.NewRequest("GET", p.host+fmt.Sprintf(getAllRepos, top), nil)
 	if err != nil {
 		return nil, err
