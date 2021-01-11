@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	getAllRepos = "/api/v0/repositories"
+	getAllRepos = "/api/v0/repositories?pageSize=%v"
 	getAllTags  = "/api/v0/repositories/%v/%v/tags"
 )
 
@@ -53,8 +53,10 @@ func NewPopularProvider(host, user, password string) popular.ImageProvider {
 		client:   &http.Client{Timeout: 10 * time.Second, Transport: tr}}
 }
 
-func (p *Provider) GetPopularImages(ctx context.Context, top int) ([]string, error) {
-	req, err := http.NewRequest("GET", p.host+getAllRepos, nil)
+func (p *Provider) GetPopularImages(ctx context.Context, top int, enableAllTags bool) ([]string, error) {
+	log.Println("Fetching page: ", p.host+fmt.Sprintf(getAllRepos, top))
+
+	req, err := http.NewRequest("GET", p.host+fmt.Sprintf(getAllRepos, top), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -70,49 +72,62 @@ func (p *Provider) GetPopularImages(ctx context.Context, top int) ([]string, err
 	if err = json.NewDecoder(resp.Body).Decode(&image); err != nil {
 		return nil, err
 	}
+
+	log.Println("found repos: ", len(image.Repositories))
 	var topImages []string
 	for _, img := range image.Repositories {
-		if len(topImages) == top {
-			return topImages, nil
-		}
-		tag, err := p.getImageTags(img.Namespace, img.Name)
+		tags, err := p.getImageTags(img.Namespace, img.Name, enableAllTags)
 		if err != nil {
 			log.Printf("error fetching the tag for image: %v %s", img, err.Error())
 		}
-		if tag == "" {
+		if tags == nil {
 			log.Printf("no valid tag found for image: %v/%v\n", img.Namespace, img.Name)
 			continue
 		}
-		topImages = append(topImages, fmt.Sprintf("%v/%v/%v:%v", replacer.Replace(p.host), img.Namespace, img.Name, tag))
+		for _, tag := range tags {
+			topImages = append(topImages, fmt.Sprintf("%v/%v/%v:%v", replacer.Replace(p.host), img.Namespace, img.Name, tag))
+			if len(topImages) == top {
+				return topImages, nil
+			}
+		}
 	}
+	log.Println("num of top images found: ", len(topImages))
 	return topImages, nil
 }
 
-func (p *Provider) getImageTags(namespace, img string) (string, error) {
+func (p *Provider) getImageTags(namespace, img string, enableAllTags bool) ([]string, error) {
 	req, err := http.NewRequest("GET", p.host+fmt.Sprintf(getAllTags, namespace, img), nil)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	req.Header.Add("Accept", "application/json")
 	req.Header.Add("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%v:%v", p.user, p.password))))
 	resp, err := p.client.Do(req)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	var tags []TagResponse
 	if err = json.NewDecoder(resp.Body).Decode(&tags); err != nil {
-		return "", err
+		return nil, err
 	}
+	log.Println("found tags: ", len(tags), " for image: ", img)
+	var imageTags []string
 	latestTag := ""
 	maxUpdateTime := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
 	for _, t := range tags {
+		imageTags = append(imageTags, t.Name)
 		updateAt, _ := time.Parse(time.RFC3339, t.UpdatedAt)
 		if updateAt.After(maxUpdateTime) {
 			maxUpdateTime = updateAt
 			latestTag = t.Name
 		}
+
 	}
-	return latestTag, nil
+	if enableAllTags {
+		return imageTags, nil
+	}
+	log.Println("latest tag: ", latestTag, "for image: ", img)
+	return []string{latestTag}, nil
 }

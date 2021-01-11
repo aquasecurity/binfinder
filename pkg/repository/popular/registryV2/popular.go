@@ -47,7 +47,7 @@ func NewPopularProvider(host, user, password string) popular.ImageProvider {
 		client:   &http.Client{Timeout: 10 * time.Second, Transport: tr}}
 }
 
-func (p *Provider) GetPopularImages(ctx context.Context, top int) ([]string, error) {
+func (p *Provider) GetPopularImages(ctx context.Context, top int, enableAllTags bool) ([]string, error) {
 	req, err := http.NewRequest("GET", p.host+getAllRepos, nil)
 	if err != nil {
 		return nil, err
@@ -66,7 +66,7 @@ func (p *Provider) GetPopularImages(ctx context.Context, top int) ([]string, err
 	}
 	var topImages []string
 	for _, img := range image.Repositories {
-		tags, err := p.getImageTags(img)
+		tags, err := p.getImageTags(img, enableAllTags)
 		if err != nil {
 			log.Printf("error fetching the tag for image: %v %s", img, err.Error())
 		}
@@ -80,7 +80,7 @@ func (p *Provider) GetPopularImages(ctx context.Context, top int) ([]string, err
 	return topImages, nil
 }
 
-func (p *Provider) getImageTags(img string) ([]string, error) {
+func (p *Provider) getImageTags(img string, enableAllTags bool) ([]string, error) {
 	req, err := http.NewRequest("GET", p.host+fmt.Sprintf(getAllTags, img), nil)
 	if err != nil {
 		return nil, err
@@ -96,6 +96,9 @@ func (p *Provider) getImageTags(img string) ([]string, error) {
 	image := TagResponse{}
 	if err = json.NewDecoder(resp.Body).Decode(&image); err != nil {
 		return nil, err
+	}
+	if !enableAllTags && len(image.Tags) > 0 {
+		return image.Tags[:1], nil
 	}
 	return image.Tags, nil
 }
