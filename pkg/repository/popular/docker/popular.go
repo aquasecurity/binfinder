@@ -84,6 +84,7 @@ func (p *Provider) GetPopularImages(ctx context.Context, top int, enableAllTags 
 		}
 		apiURL = images.Next
 	}
+	log.Println("tags images: ", len(result))
 	return result, nil
 }
 
