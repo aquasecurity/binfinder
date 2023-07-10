@@ -155,7 +155,6 @@ func main() {
 		log.Printf("got no image to scan for diff\n")
 		return
 	}
-
 	concurrency := make(chan bool, *workers)
 	wg := &sync.WaitGroup{}
 	for _, img := range strings.Split(*images, ",") {
@@ -381,7 +380,6 @@ func findBins(pkgELFFiles map[string]bool, osName string, imageName string, diff
 			log.Printf("Error : %v", err)
 		}
 		dest := fmt.Sprintf("/%v", imageName)
-
 		paths := strings.Join(diffJson.ELFNames, " ")
 		var args []string
 		args = strings.Split(fmt.Sprintf("%v%v,target=%v %v cp %v %v", binCpCmd, src, dest, imageName, paths, dest), " ")
