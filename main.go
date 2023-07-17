@@ -33,6 +33,7 @@ import (
 var (
 	images        = flag.String("images", "", "comma separated images on which to run diff")
 	outputDir     = flag.String("output", "data", "output directory to store the diff files")
+	binPath       = flag.String("binaries", "binFiles", "bin file directory to store the binaries")
 	topN          = flag.Int("top", 0, "top images to run binfinder")
 	analyze       = flag.Bool("analyze", false, "run analysis on diff saved in data folder")
 	workers       = flag.Int("workers", 1, "run binfinder in parallel on multiple images")
@@ -105,6 +106,11 @@ func main() {
 		flag.Usage()
 		return
 	}
+	if *binPath != "" {
+		if err := os.MkdirAll(*binPath, os.ModePerm); err != nil {
+			log.Printf("error creating Bin file directory to save binaries: %v", err)
+		}
+	}
 	if *outputDir != "" {
 		if err := os.MkdirAll(*outputDir, os.ModePerm); err != nil {
 			log.Fatalf("error creating output directory to save diffs: %v", err)
@@ -149,10 +155,13 @@ func main() {
 		log.Printf("got no image to scan for diff\n")
 		return
 	}
-
 	concurrency := make(chan bool, *workers)
 	wg := &sync.WaitGroup{}
 	for _, img := range strings.Split(*images, ",") {
+		imgPath := filepath.Join(*binPath, img)
+		if err := os.MkdirAll(imgPath, os.ModePerm); err != nil {
+			log.Printf("error creating Bin file directory for image : %s to save binaries: %v", img, err)
+		}
 		_, err := os.Stat(fmt.Sprintf("%v/%v", *outputDir, strings.ReplaceAll(img, "/", "-")+"-diff.json"))
 		if err == nil || img == "busybox" {
 			log.Printf("skipping img: %v to parse diff, already present", img)
@@ -327,6 +336,10 @@ func getPackages(osName string, imageName string, command ...string) ([]byte, er
 	return out, nil
 }
 
+var (
+	binCpCmd = "run -u root --rm --mount type=bind,source="
+)
+
 func findBins(pkgELFFiles map[string]bool, osName string, imageName string, diffJson *Diffs, command ...string) int {
 	pkgELFFiles["/usr/bin/file"] = true
 	// binaries from findutils package
@@ -360,6 +373,22 @@ func findBins(pkgELFFiles map[string]bool, osName string, imageName string, diff
 			}
 		}
 	}
+
+	if len(diffJson.ELFNames) > 0 {
+		src, err := filepath.Abs(filepath.Join(*binPath, imageName))
+		if err != nil {
+			log.Printf("Error : %v", err)
+		}
+		dest := fmt.Sprintf("/%v", imageName)
+		paths := strings.Join(diffJson.ELFNames, " ")
+		var args []string
+		args = strings.Split(fmt.Sprintf("%v%v,target=%v %v cp %v %v", binCpCmd, src, dest, imageName, paths, dest), " ")
+		out, err = exec.Command("docker", args...).Output()
+		if err != nil {
+			log.Printf("Error generating binaries for img : %v, Error : %v", imageName, err) // error if command fails!
+		}
+	}
+
 	return count
 }
 
